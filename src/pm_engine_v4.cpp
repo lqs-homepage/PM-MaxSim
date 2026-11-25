@@ -1,11 +1,11 @@
-// Production Production Engine (pm_engine_v4.cpp) for PM-MaxSim:
+// Stage 3 Production Engine (pm_engine_v4.cpp) for P-09 (PM-MaxSim):
 //   Complete VLDB 2027 C++20 AVX-512 / AMX-BF16 / CRoaring / liburing O_DIRECT Multi-Vector Engine
-//   Implements ALL Production (3.1) contracts:
+//   Implements ALL Stage-3 (3.1) contracts:
 //     1. Three Production Deployment Tiers:
 //          - PM_NVME_T1     (Tier-0 RAM only ~0.75 GB on LoTTE / ~2.4 GB on MS MARCO; NVMe Tier-1 B4 + NVMe Tier-2 FP16)
 //          - Split_B1_B4_T3 (L1d-resident 32KB 1-bit nibble transposed Wave-1 in tiny RAM -> NVMe B4 Wave-2 -> NVMe FP16 Wave-3!)
 //          - PM_DRAM_T1     (RAM Tier-1 B4 + NVMe Tier-2 FP16, peak 48-core QPS!)
-//     2. All 6 Independent Math Audit (M3-B03 / M3-M02) Code-to-Math Contracts:
+//     2. All 6 IndependentMathReader-R3 (M3-B03 / M3-M02) Code-to-Math Contracts:
 //          - Exact build-time scanned M_norm = max_{x in D_fp16} ||x||_2 from m_norm.bin for q_unit_cap
 //          - q_eps0[t] = 3.0e-6 * max(1.0, ||q_i||_2) scaled strictly with query norm
 //          - Exact S^{126} Beta quantile tables for ALL |Q| in [1..256], BOTH Part 1 (delta/|Q|) & Part 2 (delta/(10|Q|))
@@ -21,11 +21,11 @@
 //
 // Compile:
 //   g++ -O3 -march=native -mamx-tile -mamx-bf16 -std=c++20 -fopenmp -Wall -Wextra
-//     -I./workspace/third_party/CRoaring
-//     -I./workspace/third_party/install/include
+//     -I$(P09_ROOT)/third_party/CRoaring
+//     -I$(P09_ROOT)/third_party/install/include
 //     pm_engine_v4.cpp
-//     ./workspace/third_party/CRoaring/roaring.o
-//     ./workspace/third_party/install/lib/liburing.a
+//     $(P09_ROOT)/third_party/CRoaring/roaring.o
+//     $(P09_ROOT)/third_party/install/lib/liburing.a
 //     -o pm_engine_v4
 
 #include <algorithm>
@@ -1127,6 +1127,7 @@ struct RerankStats {
     float    scores[100];
     int n_out = 0;
     int wave1_surv = 0, tier2_reranked = 0;
+    double t_b1_ms = 0.0, t_b4_ms = 0.0, t_t2_ms = 0.0;
 };
 
 static void extract_sorted_heap(std::priority_queue<HeapItem, std::vector<HeapItem>, HeapMinCmp>& heap, RerankStats& st) {
@@ -1139,6 +1140,7 @@ static void extract_sorted_heap(std::priority_queue<HeapItem, std::vector<HeapIt
 
 static RerankStats rerank_direct_exact(const std::vector<uint32_t>& cands, ThreadUringReader& t2, const float* Q_32, uint32_t vmask, int topk = 10) {
     RerankStats st; int nc = (int)cands.size(); if (nc == 0) return st;
+    double tt0 = monotonic_ns();
     std::vector<const uint8_t*> ptrs; t2.fetch_batch(cands.data(), nc, ptrs);
     std::priority_queue<HeapItem, std::vector<HeapItem>, HeapMinCmp> heap;
     for (int i = 0; i < nc; ++i) {
@@ -1146,6 +1148,7 @@ static RerankStats rerank_direct_exact(const std::vector<uint32_t>& cands, Threa
         if ((int)heap.size() < topk) heap.push(it);
         else if (is_better_hit(it, heap.top())) { heap.pop(); heap.push(it); }
     }
+    st.t_t2_ms = (monotonic_ns() - tt0) * 1e-6;
     st.tier2_reranked = nc;
     extract_sorted_heap(heap, st);
     return st;
@@ -1154,6 +1157,7 @@ static RerankStats rerank_direct_exact(const std::vector<uint32_t>& cands, Threa
 static RerankStats rerank_approx_b4_zero_t2(const std::vector<uint32_t>& cands, ThreadUringReader& t1_b4,
                                             const float* S_bf16, const Tier1QueryPrepV4& qp, int topk = 10) {
     RerankStats st; int nc = (int)cands.size(); if (nc == 0) return st;
+    double tb0 = monotonic_ns();
     std::vector<const uint8_t*> ptrs; t1_b4.fetch_batch(cands.data(), nc, ptrs);
     std::priority_queue<HeapItem, std::vector<HeapItem>, HeapMinCmp> heap;
     for (int i = 0; i < nc; ++i) {
@@ -1161,6 +1165,7 @@ static RerankStats rerank_approx_b4_zero_t2(const std::vector<uint32_t>& cands, 
         if ((int)heap.size() < topk) heap.push(it);
         else if (is_better_hit(it, heap.top())) { heap.pop(); heap.push(it); }
     }
+    st.t_b4_ms = (monotonic_ns() - tb0) * 1e-6;
     extract_sorted_heap(heap, st);
     return st;
 }
@@ -1170,34 +1175,42 @@ static RerankStats rerank_t3_b4(const std::vector<uint32_t>& cands, ThreadUringR
                                 const float* Q_32, const Tier1QueryPrepV4& qp, int topk = 10) {
     RerankStats st; int nc = (int)cands.size(); if (nc == 0) return st;
     int sk = std::min(topk, nc);
+    double ts0 = monotonic_ns();
     std::vector<const uint8_t*> ptrs2; t2.fetch_batch(cands.data(), sk, ptrs2);
     std::priority_queue<HeapItem, std::vector<HeapItem>, HeapMinCmp> heap;
     for (int i = 0; i < sk; ++i) {
         HeapItem it{exact_maxsim_fp16_doc(ptrs2[i], t2.store->meta[cands[i]].n_toks, Q_32, qp.valid_q_mask), cands[i]};
         heap.push(it);
     }
+    st.t_t2_ms += (monotonic_ns() - ts0) * 1e-6;
     st.tier2_reranked = sk;
     if (nc > sk) {
         int rem = nc - sk;
+        double tb0 = monotonic_ns();
         std::vector<const uint8_t*> ptrs1; t1_b4.fetch_batch(cands.data() + sk, rem, ptrs1);
+        st.t_b4_ms += (monotonic_ns() - tb0) * 1e-6;
         const int WAVE = 32;
         std::vector<uint32_t> surv; surv.reserve(WAVE);
         for (int ws = 0; ws < rem; ws += WAVE) {
             int we = std::min(rem, ws + WAVE);
             float th = ((int)heap.size() == topk) ? heap.top().score : -1e9f;
             surv.clear();
+            double tc0 = monotonic_ns();
             for (int i = ws; i < we; ++i) {
                 uint32_t did = cands[sk + i];
                 if (compute_theorem3_b4_ub_doc_v4(ptrs1[i], t1_b4.store->meta[did].n_toks, S_bf16, C_norms, C_bf_err, qp) >= th)
                     surv.push_back(did);
             }
+            st.t_b4_ms += (monotonic_ns() - tc0) * 1e-6;
             if (!surv.empty()) {
+                double t20 = monotonic_ns();
                 t2.fetch_batch(surv.data(), (int)surv.size(), ptrs2);
                 for (size_t i = 0; i < surv.size(); ++i) {
                     HeapItem it{exact_maxsim_fp16_doc(ptrs2[i], t2.store->meta[surv[i]].n_toks, Q_32, qp.valid_q_mask), surv[i]};
                     if ((int)heap.size() < topk) heap.push(it);
                     else if (is_better_hit(it, heap.top())) { heap.pop(); heap.push(it); }
                 }
+                st.t_t2_ms += (monotonic_ns() - t20) * 1e-6;
                 st.tier2_reranked += (int)surv.size();
             }
         }
@@ -1214,12 +1227,14 @@ static RerankStats rerank_split_b1_b4_t3(const std::vector<uint32_t>& cands,
     RerankStats st; int nc = (int)cands.size(); if (nc == 0) return st;
     int sk = std::min(topk, nc);
     std::vector<const uint8_t*> ptrs2, ptrs4, ptrs1;
+    double ts0 = monotonic_ns();
     t2_nvme.fetch_batch(cands.data(), sk, ptrs2);
     std::priority_queue<HeapItem, std::vector<HeapItem>, HeapMinCmp> heap;
     for (int i = 0; i < sk; ++i) {
         HeapItem it{exact_maxsim_fp16_doc(ptrs2[i], t2_nvme.store->meta[cands[i]].n_toks, Q_32, qp.valid_q_mask), cands[i]};
         heap.push(it);
     }
+    st.t_t2_ms += (monotonic_ns() - ts0) * 1e-6;
     st.tier2_reranked = sk;
     if (nc > sk) {
         int rem = nc - sk;
@@ -1231,13 +1246,16 @@ static RerankStats rerank_split_b1_b4_t3(const std::vector<uint32_t>& cands,
             int we = std::min(rem, ws + WAVE);
             float th = ((int)heap.size() == topk) ? heap.top().score : -1e9f;
             w1_surv.clear();
+            double t10 = monotonic_ns();
             for (int i = ws; i < we; ++i) {
                 uint32_t did = cands[sk + i];
                 if (compute_theorem3_b1_ub_doc_v4(ptrs1[i], t1_b1_ram.store->meta[did].n_toks, S_bf16, C_norms, C_bf_err, qp) >= th)
                     w1_surv.push_back(did);
             }
+            st.t_b1_ms += (monotonic_ns() - t10) * 1e-6;
             if (w1_surv.empty()) continue;
             st.wave1_surv += (int)w1_surv.size();
+            double t40 = monotonic_ns();
             t1_b4_nvme.fetch_batch(w1_surv.data(), (int)w1_surv.size(), ptrs4);
             w2_surv.clear();
             for (size_t i = 0; i < w1_surv.size(); ++i) {
@@ -1245,13 +1263,16 @@ static RerankStats rerank_split_b1_b4_t3(const std::vector<uint32_t>& cands,
                 if (compute_theorem3_b4_ub_doc_v4(ptrs4[i], t1_b4_nvme.store->meta[did].n_toks, S_bf16, C_norms, C_bf_err, qp) >= th)
                     w2_surv.push_back(did);
             }
+            st.t_b4_ms += (monotonic_ns() - t40) * 1e-6;
             if (!w2_surv.empty()) {
+                double t20 = monotonic_ns();
                 t2_nvme.fetch_batch(w2_surv.data(), (int)w2_surv.size(), ptrs2);
                 for (size_t i = 0; i < w2_surv.size(); ++i) {
                     HeapItem it{exact_maxsim_fp16_doc(ptrs2[i], t2_nvme.store->meta[w2_surv[i]].n_toks, Q_32, qp.valid_q_mask), w2_surv[i]};
                     if ((int)heap.size() < topk) heap.push(it);
                     else if (is_better_hit(it, heap.top())) { heap.pop(); heap.push(it); }
                 }
+                st.t_t2_ms += (monotonic_ns() - t20) * 1e-6;
                 st.tier2_reranked += (int)w2_surv.size();
             }
         }
@@ -1457,13 +1478,15 @@ int main(int argc, char** argv) {
     std::string mode, dir, out_json = "/tmp/pm_v4_out.json", dump_dir;
     std::vector<int> threads = {1, 8, 24, 48};
     std::vector<std::string> wl_filter;
-    int topk = 10;
+    int topk = 10, c1_arg = 600, nprobe_arg = 8;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--no-amx") g_force_no_amx = true;
         else if (a == "--unit-test" && i + 1 < argc) { mode = "unit_test"; dir = argv[++i]; }
         else if (a == "--bench-single" && i + 2 < argc) { mode = "bench_single"; dir = argv[++i]; out_json = argv[++i]; }
         else if (a == "--topk" && i + 1 < argc) { topk = std::clamp(std::stoi(argv[++i]), 1, 100); }
+        else if (a == "--c1" && i + 1 < argc) { c1_arg = std::max(10, std::stoi(argv[++i])); }
+        else if (a == "--nprobe" && i + 1 < argc) { nprobe_arg = std::max(1, std::stoi(argv[++i])); }
         else if (a == "--dump-topids" && i + 1 < argc) { dump_dir = argv[++i]; }
         else if (a == "--workloads" && i + 1 < argc) {
             std::stringstream ss(argv[++i]); std::string tok;
@@ -1476,7 +1499,7 @@ int main(int argc, char** argv) {
         }
     }
     if (mode.empty()) {
-        std::cerr << "Usage: " << argv[0] << " --unit-test <dir> | --bench-single <dir> <out.json> [--no-amx] [--threads 1,8,24,48] [--topk 10|50|100] [--workloads a,b] [--dump-topids <dir>]\n";
+        std::cerr << "Usage: " << argv[0] << " --unit-test <dir> | --bench-single <dir> <out.json> [--no-amx] [--threads 1,8,24,48] [--topk 10|50|100] [--c1 600] [--nprobe 8] [--workloads a,b] [--dump-topids <dir>]\n";
         return 1;
     }
     init_amx_process();
@@ -1498,7 +1521,6 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    // Load optional workloads_gt100.bin for topk > 10!
     std::vector<std::pair<std::string, std::vector<uint32_t>>> gt100_map;
     {
         std::ifstream f100(dir + "/workloads_gt100.bin", std::ios::binary);
@@ -1513,14 +1535,14 @@ int main(int argc, char** argv) {
         }
     }
 
-    // 8 complete single-segment methods!
     const char* mnames[8] = {"Split_B1_B4_T3", "PM_DRAM_T1", "PM_NVME_T1", "Approx_B4_NVMe", "Approx_B4_DRAM", "B2b_InvK0", "B2a_WARP_Pure", "B1b_Flat_T3"};
-    int C1_pool = std::max(600, topk * 10);
+    int C1_pool = std::max(c1_arg, topk * 10);
 
     std::ofstream fo(out_json);
     fo << std::fixed << std::setprecision(4)
        << "{\n  \"dir\": \"" << dir << "\", \"N_docs\": " << idx.N_docs << ", \"K\": " << idx.K
-       << ", \"topk\": " << topk << ", \"m_norm_max\": " << idx.m_norm_max
+       << ", \"topk\": " << topk << ", \"c1\": " << C1_pool << ", \"nprobe\": " << nprobe_arg
+       << ", \"m_norm_max\": " << idx.m_norm_max
        << ", \"amx_active\": " << ((g_amx_perm && !g_force_no_amx) ? "true" : "false")
        << ", \"unit_test\": {\"b4_pairs\": " << ut.n_pairs_b4 << ", \"b4_viol\": " << ut.viol_b4
        << ", \"b1_pairs\": " << ut.n_pairs_b1 << ", \"b1_viol\": " << ut.viol_b1 << "},\n  \"rows\": [\n";
@@ -1541,7 +1563,6 @@ int main(int argc, char** argv) {
         std::vector<roaring_bitmap_t*> rbs(wl.n_bitmaps, nullptr);
         if (!is_unf) for (uint64_t b = 0; b < wl.n_bitmaps; ++b) rbs[b] = bitmap_to_roaring(wl.bitmaps.data() + b * idx.n_words, idx.N_docs);
 
-        // RAM-only Tier-0 warmup
         {
             QueryLUT lut;
             for (int q = 0; q < std::min(8, nq); ++q) {
@@ -1549,7 +1570,7 @@ int main(int argc, char** argv) {
                 uint32_t bi = wl.q_to_bm[q];
                 volatile size_t sink = tier0_pm_dual_v4(idx, wl.bitmaps.data() + (size_t)bi * idx.n_words,
                                                         is_unf ? nullptr : rbs[bi], lut.S_bf16.data(), lut.S4.data(),
-                                                        lut.valid_q_mask, 8, C1_pool, is_unf, true).size();
+                                                        lut.valid_q_mask, nprobe_arg, C1_pool, is_unf, true).size();
                 (void)sink;
             }
         }
@@ -1562,7 +1583,9 @@ int main(int argc, char** argv) {
                 idx.tier1_b4_nvme.flush_cold();
                 idx.tier2_nvme.flush_cold();
 
-                std::vector<double> lats(total_q, 0.0), recs(total_q, 0.0);
+                std::vector<double> lats(total_q, 0.0), recs(total_q, 0.0), allk(total_q, 0.0);
+                std::vector<double> t_lut_v(total_q, 0.0), t_t0_v(total_q, 0.0), t_b1_v(total_q, 0.0), t_b4_v(total_q, 0.0), t_t2_v(total_q, 0.0);
+                std::vector<double> cand_v(total_q, 0.0), w1_v(total_q, 0.0), t2_v(total_q, 0.0);
                 std::vector<uint32_t> dumped_ids((!dump_dir.empty() && nT == threads.front()) ? (size_t)nq * topk : 0, 0);
                 std::atomic<uint64_t> app_bytes{0}, log_bytes{0}, cb_trips{0};
                 std::atomic<int> next_q{0};
@@ -1596,14 +1619,16 @@ int main(int argc, char** argv) {
                         build_query_lut(idx.C_bf16.data(), idx.K, Qq, lut);
                         Tier1QueryPrepV4 qp;
                         qp.init(Qq, Qrq, lut.valid_q_mask, lut.n_valid_q, idx.is_unit != 0, idx.m_norm_max, (topk > 10), (m == 0), topk);
+                        double qt_lut = monotonic_ns();
 
                         bool tripped = false;
                         std::vector<uint32_t> cands;
-                        if (m == 6)      cands = tier0_warp_pure(idx, rb, lut.S_bf16.data(), lut.valid_q_mask, 8, C1_pool, is_unf);
+                        if (m == 6)      cands = tier0_warp_pure(idx, rb, lut.S_bf16.data(), lut.valid_q_mask, nprobe_arg, C1_pool, is_unf);
                         else if (m == 7) cands = tier0_flat(idx, bm, lut.S4.data(), C1_pool);
                         else             cands = tier0_pm_dual_v4(idx, bm, rb, lut.S_bf16.data(), lut.S4.data(),
-                                                                  lut.valid_q_mask, 8, C1_pool, is_unf, (m != 5), 0.08, &tripped);
+                                                                  lut.valid_q_mask, nprobe_arg, C1_pool, is_unf, (m != 5), 0.08, &tripped);
                         if (tripped) cb_trips.fetch_add(1, std::memory_order_relaxed);
+                        double qt_t0 = monotonic_ns();
 
                         RerankStats st;
                         if (m == 0)      st = rerank_split_b1_b4_t3(cands, tr_b1, tr_b4n, tr_t2, lut.S_bf16.data(), idx.C_norms.data(), idx.C_bf_err.data(), Qq, qp, topk);
@@ -1613,8 +1638,19 @@ int main(int argc, char** argv) {
                         else if (m == 4) st = rerank_approx_b4_zero_t2(cands, tr_b4r, lut.S_bf16.data(), qp, topk);
                         else             st = rerank_direct_exact(cands, tr_t2, Qq, lut.valid_q_mask, topk);
 
-                        lats[job] = (monotonic_ns() - qt0) * 1e-6;
-                        recs[job] = calc_recall_k(st.topk_ids, st.n_out, gt_q, eval_k);
+                        double qt_end = monotonic_ns();
+                        lats[job] = (qt_end - qt0) * 1e-6;
+                        t_lut_v[job] = (qt_lut - qt0) * 1e-6;
+                        t_t0_v[job]  = (qt_t0 - qt_lut) * 1e-6;
+                        t_b1_v[job]  = st.t_b1_ms;
+                        t_b4_v[job]  = st.t_b4_ms;
+                        t_t2_v[job]  = st.t_t2_ms;
+                        cand_v[job]  = (double)cands.size();
+                        w1_v[job]    = (double)st.wave1_surv;
+                        t2_v[job]    = (double)st.tier2_reranked;
+                        double r_val = calc_recall_k(st.topk_ids, st.n_out, gt_q, eval_k);
+                        recs[job] = r_val;
+                        allk[job] = (r_val >= 0.999999) ? 1.0 : 0.0;
                         if (!dumped_ids.empty() && job < nq) {
                             for (int r = 0; r < std::min(topk, st.n_out); ++r) dumped_ids[(size_t)q * topk + r] = st.topk_ids[r];
                         }
@@ -1635,7 +1671,8 @@ int main(int argc, char** argv) {
                 std::sort(lats.begin(), lats.end());
                 double p50 = lats[lats.size() / 2], p99 = lats[std::min(lats.size() - 1, (size_t)(lats.size() * 0.99))];
                 double qps = (double)total_q / ws_s;
-                double rk = std::accumulate(recs.begin(), recs.end(), 0.0) / total_q;
+                auto avg_v = [&](const std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0) / total_q; };
+                double rk = avg_v(recs), a10 = avg_v(allk);
                 double nvme_mbs = ((double)pio / 1048576.0) / ws_s;
                 double log_mb = ((double)log_bytes.load() / 1048576.0) / total_q;
                 double app_mb = ((double)app_bytes.load() / 1048576.0) / total_q;
@@ -1645,16 +1682,21 @@ int main(int argc, char** argv) {
                 if (!first) fo << ",\n";
                 first = false;
                 fo << "    {\"workload\": \"" << wn << "\", \"threads\": " << nT << ", \"method\": \"" << mnames[m]
-                   << "\", \"topk\": " << eval_k << ", \"qps\": " << qps << ", \"p50_ms\": " << p50 << ", \"p99_ms\": " << p99
-                   << ", \"recall_k\": " << rk << ", \"recall10\": " << rk << ", \"nvme_mbs\": " << nvme_mbs
+                   << "\", \"topk\": " << eval_k << ", \"c1\": " << C1_pool << ", \"nprobe\": " << nprobe_arg
+                   << ", \"qps\": " << qps << ", \"p50_ms\": " << p50 << ", \"p99_ms\": " << p99
+                   << ", \"recall_k\": " << rk << ", \"recall10\": " << rk << ", \"all10_exact\": " << a10
+                   << ", \"avg_cand\": " << avg_v(cand_v) << ", \"avg_w1_surv\": " << avg_v(w1_v) << ", \"avg_t2_reranked\": " << avg_v(t2_v)
+                   << ", \"t_lut_ms\": " << avg_v(t_lut_v) << ", \"t_tier0_ms\": " << avg_v(t_t0_v)
+                   << ", \"t_b1_ms\": " << avg_v(t_b1_v) << ", \"t_b4_ms\": " << avg_v(t_b4_v) << ", \"t_t2_ms\": " << avg_v(t_t2_v)
+                   << ", \"nvme_mbs\": " << nvme_mbs
                    << ", \"logical_mb_q\": " << log_mb << ", \"app_mb_q\": " << app_mb << ", \"proc_mb_q\": " << proc_mb
                    << ", \"raf\": " << raf << ", \"cb_trips\": " << cb_trips.load() << ", \"mhz\": " << mhz << "}";
-                std::cerr << "  [" << wn << " T=" << std::setw(2) << nT << " k=" << eval_k << "] " << std::setw(15) << mnames[m]
+                std::cerr << "  [" << wn << " T=" << std::setw(2) << nT << " C1=" << C1_pool << " np=" << nprobe_arg << "] " << std::setw(15) << mnames[m]
                           << " | QPS=" << std::setprecision(1) << std::setw(7) << qps
                           << " | P50=" << std::setprecision(2) << std::setw(6) << p50
-                          << " | P99=" << std::setw(6) << p99
-                          << " | R@k=" << std::setprecision(3) << rk
-                          << " | IO=" << std::setprecision(2) << proc_mb << " MB/q (RAF=" << std::setprecision(2) << raf << ")\n";
+                          << " | R@k=" << std::setprecision(3) << rk << " All10=" << std::setprecision(2) << a10
+                          << " | T2=" << std::setprecision(1) << avg_v(t2_v) << "/" << avg_v(cand_v)
+                          << " | IO=" << std::setprecision(2) << proc_mb << " MB/q\n";
             }
         }
         if (!is_unf) for (auto* r : rbs) if (r) roaring_bitmap_free(r);

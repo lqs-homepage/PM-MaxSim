@@ -26,11 +26,14 @@ scripts/
   build_lotte200k_and_gt_upgrade.py # 1:1 lotte_200k matched index, 16-WL MS MARCO GT, and official IR anchor verifier
   ingest_external_dbs.py         # Non-root ingestion for unmodified VectorChord 1.5.0, Qdrant v1.20.2, Weaviate v1.41.0
   bench_external_dbs.py          # 1:1 hard-exclusive benchmark harness for all external DB configurations
+  measure_vchord_true_pss.py     # Linux /proc/<pid>/smaps_rollup full process-group PSS profiler for PostgreSQL/VectorChord
 results/
   T1_e2e_48c_main.csv            # 48-core cold NVMe main results across all corpora & 8 methods (1,478 rows)
-  T2_ablation_drilldown.csv      # AMX vs AVX-512, k=10/50/100, 6-phase LSM + Compaction, 1c/48c Cache-Cliff
-  T3_rerank_fidelity_ir.csv      # Official MS MARCO MRR@10 & ViDoRe v3 nDCG@5 vs exact FP32 anchors
-  T4_external_dbs_1to1.csv       # Strict 1:1 external production DB comparison (VectorChord, Qdrant, Weaviate)
+  T2_ablation_drilldown.csv      # AMX vs AVX-512, k=10/50/100, 6-phase LSM + Compaction, 1c/48c Cache-Cliff (104 rows)
+  T3_rerank_fidelity_ir.csv      # Official 100/100 MS MARCO MRR@10 & 140/140 ViDoRe v3 nDCG@5 vs exact FP32 anchors (23 rows)
+  T4_external_dbs_1to1.csv       # Strict 1:1 external DB comparison incl. matched-recall parity & PG PSS (328 rows)
+  T5_pareto_curves.csv           # 48-core QPS-vs-Recall@10 Pareto sweeps across lotte_200k, LoTTE 2.82M, MS MARCO 8.84M (272 rows)
+  T6_latency_breakdown_prune.csv # All-10 exactness, Wave-1/Tier-2 prune rates & 5-stage ms latency breakdown (316 rows)
 ```
 
 ## Quick Start

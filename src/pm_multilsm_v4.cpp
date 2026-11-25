@@ -1,4 +1,4 @@
-// Production Complete Multi-Segment Dynamic LSM + VecBench 6-Phase + Compaction + Cache-Cliff Engine (pm_multilsm_v4.cpp)
+// Stage 3 Complete Multi-Segment Dynamic LSM + VecBench 6-Phase + Compaction + Cache-Cliff Engine (pm_multilsm_v4.cpp)
 //   Supports:
 //     --cache-cliff <out.json>                       : L1/L2/L3 working-set LUT step curve (4-bit vs 8-bit, 1c & 48c)
 //     --bench-lsm <msmarco_8m_lsm_dir> <out.json>    : Full 8.84M 3-segment LSM (seg0+seg1+seg2+delta50k) 1/8/24/48c
@@ -7,11 +7,11 @@
 //
 // Compile:
 //   g++ -O3 -march=native -mamx-tile -mamx-bf16 -std=c++20 -fopenmp -Wall -Wextra
-//     -I./workspace/third_party/CRoaring
-//     -I./workspace/third_party/install/include
+//     -I$(P09_ROOT)/third_party/CRoaring
+//     -I$(P09_ROOT)/third_party/install/include
 //     pm_multilsm_v4.cpp
-//     ./workspace/third_party/CRoaring/roaring.o
-//     ./workspace/third_party/install/lib/liburing.a
+//     $(P09_ROOT)/third_party/CRoaring/roaring.o
+//     $(P09_ROOT)/third_party/install/lib/liburing.a
 //     -o pm_multilsm_v4
 
 #include <algorithm>
@@ -635,7 +635,8 @@ static double recall_k(const HeapItem* out, int n, const uint32_t* gt, int k) {
 }
 
 static void run_bench_lsm(const std::string& root, const std::string& out_json, const std::vector<int>& threads,
-                          int topk, bool load_b4_ram, const std::vector<std::string>& wl_filter, const std::string& dump_dir) {
+                          int topk, bool load_b4_ram, int c1_arg, int nprobe_arg,
+                          const std::vector<std::string>& wl_filter, const std::string& dump_dir) {
     std::array<Segment, 4> segs;
     uint32_t bases[4] = {0, 0, 0, 0};
     const char* snames[4] = {"seg0", "seg1", "seg2", "delta50k"};
@@ -699,9 +700,8 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
        << ", \"tier1_b4_nvme\": " << mb_b4 << ", \"tier2_fp16_nvme\": " << mb_t2 << "},\n  \"rows\": [\n";
     bool first = true;
 
-    // 8 complete methods matching VLDB 2026 Table 1!
     const char* mnames[8] = {"Split_B1_B4_T3", "PM_DRAM_T1", "PM_NVME_T1", "Approx_B4_NVMe", "Approx_B4_DRAM", "B2b_InvK0", "B2a_WARP_Pure", "B1b_Flat_T3"};
-    int C1_pool = std::max(600, topk * 10);
+    int C1_pool = std::max(c1_arg, topk * 10);
 
     for (const auto& wl : wls) {
         if (!wl_filter.empty() && std::find(wl_filter.begin(), wl_filter.end(), wl.name) == wl_filter.end()) continue;
@@ -726,10 +726,12 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
             for (int m = 0; m < 8; ++m) {
                 if ((m == 1 || m == 4) && !load_b4_ram) continue;
                 if (is_lsm && m > 2) continue;
-                if (m == 7 && wl.sigma > 0.15) continue; // B1b_Flat_T3 meaningful on filtered <=15% (100% flat is 8.84M brute-force)
+                if (m == 7 && wl.sigma > 0.15) continue;
                 for (int s = 0; s < 4; ++s) { segs[s].t1_b4_nvme.flush_cold(); segs[s].t2_nvme.flush_cold(); }
 
-                std::vector<double> lats(total_q, 0.0), recs(total_q, 0.0);
+                std::vector<double> lats(total_q, 0.0), recs(total_q, 0.0), allk(total_q, 0.0);
+                std::vector<double> t_lut_v(total_q, 0.0), t_t0_v(total_q, 0.0), t_b1_v(total_q, 0.0), t_b4_v(total_q, 0.0), t_t2_v(total_q, 0.0);
+                std::vector<double> cand_v(total_q, 0.0), w1_v(total_q, 0.0), t2_v(total_q, 0.0);
                 std::vector<uint32_t> dumped_ids((!dump_dir.empty() && nT == run_ts.front()) ? (size_t)nq * topk : 0, 0);
                 std::atomic<uint64_t> app_b{0}, log_b{0}, cb_trips{0}; std::atomic<int> next_q{0};
                 uint64_t io0 = 0, pio = 0; double wt0 = 0, wt1 = 0;
@@ -756,14 +758,14 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                         double qt0 = monotonic_ns();
                         build_lut(segs[0].C_bf16.data(), segs[0].K, Qq, lut);
                         QPrepV4 qp; qp.init(Qq, Qrq, lut.vmask, lut.n_vq, max_mnorm, (m == 0), (topk > 10), topk);
+                        double qt_lut = monotonic_ns();
 
                         struct SegCand { uint16_t score; uint8_t seg; uint32_t loc_id; };
                         std::vector<SegCand> pool; pool.reserve(8192);
                         bool q_tripped = false;
 
                         if (m == 6) {
-                            // B2a_WARP_Pure: centroid score accumulation across all 4 segments, zero K0_4b, zero CB!
-                            CentroidTopK topk_c; topk_c.select(lut.S_bf16.data(), segs[0].K, lut.vmask, 8);
+                            CentroidTopK topk_c; topk_c.select(lut.S_bf16.data(), segs[0].K, lut.vmask, nprobe_arg);
                             std::vector<std::pair<uint32_t, float>> hits; hits.reserve(32768);
                             for (int s = 0; s < 4; ++s) {
                                 const auto& sg = segs[s];
@@ -805,7 +807,6 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                 }
                             }
                         } else if (m == 7) {
-                            // B1b_Flat_T3: full Path I K0_4b scan over all valid docs in all 4 segments!
                             for (int s = 0; s < 4; ++s) {
                                 const auto& sg = segs[s];
                                 if (is_unf) {
@@ -822,9 +823,8 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                 }
                             }
                         } else {
-                            // PM-MaxSim Dual-Path Tier-0 (with Theorem 4A dynamic tau1* + Theorem 4B Pure Rule B for m!=5!)
-                            CentroidTopK topk_c; topk_c.select(lut.S_bf16.data(), segs[0].K, lut.vmask, 8);
-                            std::vector<uint32_t> pcids; pcids.reserve(256);
+                            CentroidTopK topk_c; topk_c.select(lut.S_bf16.data(), segs[0].K, lut.vmask, nprobe_arg);
+                            std::vector<uint32_t> pcids; pcids.reserve(32 * nprobe_arg);
                             uint32_t vm = lut.vmask;
                             while (vm) { int t = __builtin_ctz(vm); vm &= vm - 1; for (const auto& [sc, cid] : topk_c.top_per_tok[t]) pcids.push_back(cid); }
                             std::sort(pcids.begin(), pcids.end()); pcids.erase(std::unique(pcids.begin(), pcids.end()), pcids.end());
@@ -840,7 +840,7 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                     const roaring_bitmap_t* prb = seg_rbs[s][bi];
                                     uint64_t nv = roaring_bitmap_get_cardinality(prb);
                                     if (nv == 0) { roaring_bitmap_free(cu); continue; }
-                                    if (nv <= sg.dynamic_tau1(8, lut.n_vq)) {
+                                    if (nv <= sg.dynamic_tau1(nprobe_arg, lut.n_vq)) {
                                         std::vector<uint32_t> vs(nv); roaring_bitmap_to_uint32_array(prb, vs.data());
                                         for (uint32_t d : vs) pool.push_back({score_k0_4b(sg.doc_cids.data(), sg.doc_offs[d], sg.doc_offs[d + 1], lut.S4.data()), (uint8_t)s, d});
                                         roaring_bitmap_free(cu); continue;
@@ -895,7 +895,6 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                 roaring_bitmap_free(cu);
                                 for (uint32_t d : loc) pool.push_back({score_k0_4b(sg.doc_cids.data(), sg.doc_offs[d], sg.doc_offs[d + 1], lut.S4.data()), (uint8_t)s, d});
                             }
-                            // Live Delta Buffer (seg 3): ALWAYS Path I K0_4b direct scan (0 ms RID remap!)
                             {
                                 const auto& dg = segs[3];
                                 if (is_unf) {
@@ -920,9 +919,13 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                 return (a.score != b.score) ? (a.score > b.score) : ((a.seg != b.seg) ? (a.seg < b.seg) : (a.loc_id < b.loc_id));
                             });
                         }
+                        double qt_t0 = monotonic_ns();
 
+                        int loc_w1 = 0, loc_t2 = 0;
+                        double tb1 = 0.0, tb4 = 0.0, tt2 = 0.0;
                         std::priority_queue<HeapItem, std::vector<HeapItem>, HeapMinCmp> heap;
                         auto eval_exact_batch = [&](const std::vector<SegCand>& batch) {
+                            double ts = monotonic_ns();
                             std::array<std::vector<uint32_t>, 4> by_s;
                             for (const auto& c : batch) by_s[c.seg].push_back(c.loc_id);
                             std::vector<const uint8_t*> ptrs;
@@ -936,12 +939,15 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                     else if (is_better_hit(it, heap.top())) { heap.pop(); heap.push(it); }
                                 }
                             }
+                            loc_t2 += (int)batch.size();
+                            tt2 += (monotonic_ns() - ts) * 1e-6;
                         };
 
                         if (m == 5 || m == 6) {
                             std::vector<SegCand> allc(pool.begin(), pool.begin() + nc);
                             eval_exact_batch(allc);
                         } else if (m == 3 || m == 4) {
+                            double ts = monotonic_ns();
                             auto& b4_rdr = (m == 4) ? tr_b4r : tr_b4;
                             std::array<std::vector<uint32_t>, 4> by_s;
                             for (int i = 0; i < nc; ++i) by_s[pool[i].seg].push_back(pool[i].loc_id);
@@ -956,8 +962,8 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                     else if (is_better_hit(it, heap.top())) { heap.pop(); heap.push(it); }
                                 }
                             }
+                            tb4 += (monotonic_ns() - ts) * 1e-6;
                         } else {
-                            // Split_B1_B4_T3 (m==0), PM_DRAM_T1 (m==1), PM_NVME_T1 (m==2), B1b_Flat_T3 (m==7)
                             auto& b4_rdr = (m == 1) ? tr_b4r : tr_b4;
                             int sk = std::min(topk, nc);
                             std::vector<SegCand> seed(pool.begin(), pool.begin() + sk);
@@ -968,15 +974,20 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                 float th = ((int)heap.size() == topk) ? heap.top().score : -1e9f;
                                 std::array<std::vector<uint32_t>, 4> w1_by_s;
                                 if (m == 0) {
+                                    double t1s = monotonic_ns();
                                     for (int i = ws; i < we; ++i) {
                                         int s = pool[i].seg; uint32_t lid = pool[i].loc_id;
                                         const uint8_t* ptr = segs[s].t1_b1_ram.ram_copy.data() + segs[s].t1_b1_ram.meta[lid].offset;
-                                        if (b1_ub_doc(ptr, segs[s].t1_b1_ram.meta[lid].n_toks, lut.S_bf16.data(), segs[0].C_norms.data(), segs[0].C_bf_err.data(), qp) >= th)
+                                        if (b1_ub_doc(ptr, segs[s].t1_b1_ram.meta[lid].n_toks, lut.S_bf16.data(), segs[0].C_norms.data(), segs[0].C_bf_err.data(), qp) >= th) {
                                             w1_by_s[s].push_back(lid);
+                                            loc_w1++;
+                                        }
                                     }
+                                    tb1 += (monotonic_ns() - t1s) * 1e-6;
                                 } else {
                                     for (int i = ws; i < we; ++i) w1_by_s[pool[i].seg].push_back(pool[i].loc_id);
                                 }
+                                double t4s = monotonic_ns();
                                 std::vector<SegCand> w2_surv;
                                 std::vector<const uint8_t*> p4;
                                 for (int s = 0; s < 4; ++s) {
@@ -988,14 +999,22 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                             w2_surv.push_back({0, (uint8_t)s, lid});
                                     }
                                 }
+                                tb4 += (monotonic_ns() - t4s) * 1e-6;
                                 if (!w2_surv.empty()) eval_exact_batch(w2_surv);
                             }
                         }
 
                         std::vector<HeapItem> res; while (!heap.empty()) { res.push_back(heap.top()); heap.pop(); }
                         std::sort(res.begin(), res.end(), HeapMinCmp{});
-                        lats[job] = (monotonic_ns() - qt0) * 1e-6;
-                        recs[job] = recall_k(res.data(), (int)res.size(), gt_ptr + (size_t)q * gt_stride, eval_k);
+                        double qt_end = monotonic_ns();
+                        lats[job] = (qt_end - qt0) * 1e-6;
+                        t_lut_v[job] = (qt_lut - qt0) * 1e-6;
+                        t_t0_v[job]  = (qt_t0 - qt_lut) * 1e-6;
+                        t_b1_v[job]  = tb1; t_b4_v[job] = tb4; t_t2_v[job] = tt2;
+                        cand_v[job]  = (double)nc; w1_v[job] = (double)loc_w1; t2_v[job] = (double)loc_t2;
+                        double r_val = recall_k(res.data(), (int)res.size(), gt_ptr + (size_t)q * gt_stride, eval_k);
+                        recs[job] = r_val;
+                        allk[job] = (r_val >= 0.999999) ? 1.0 : 0.0;
                         if (!dumped_ids.empty() && job < nq) {
                             for (int r = 0; r < std::min<int>(topk, (int)res.size()); ++r) dumped_ids[(size_t)q * topk + r] = res[r].did;
                         }
@@ -1016,7 +1035,8 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                 double ws = (wt1 - wt0) * 1e-9;
                 std::sort(lats.begin(), lats.end());
                 double p50 = lats[lats.size() / 2], p99 = lats[std::min(lats.size() - 1, (size_t)(lats.size() * 0.99))];
-                double qps = (double)total_q / ws, rk = std::accumulate(recs.begin(), recs.end(), 0.0) / total_q;
+                auto avg_v = [&](const std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0) / total_q; };
+                double qps = (double)total_q / ws, rk = avg_v(recs), a10 = avg_v(allk);
                 double nvme_mbs = ((double)pio / 1048576.0) / ws;
                 double log_mb = ((double)log_b.load() / 1048576.0) / total_q;
                 double app_mb = ((double)app_b.load() / 1048576.0) / total_q;
@@ -1025,14 +1045,20 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                 if (!first) fo << ",\n";
                 first = false;
                 fo << "    {\"workload\": \"" << wl.name << "\", \"threads\": " << nT << ", \"method\": \"" << mnames[m]
-                   << "\", \"topk\": " << eval_k << ", \"qps\": " << qps << ", \"p50_ms\": " << p50 << ", \"p99_ms\": " << p99
-                   << ", \"recall_k\": " << rk << ", \"recall10\": " << rk << ", \"nvme_mbs\": " << nvme_mbs
+                   << "\", \"topk\": " << eval_k << ", \"c1\": " << C1_pool << ", \"nprobe\": " << nprobe_arg
+                   << ", \"qps\": " << qps << ", \"p50_ms\": " << p50 << ", \"p99_ms\": " << p99
+                   << ", \"recall_k\": " << rk << ", \"recall10\": " << rk << ", \"all10_exact\": " << a10
+                   << ", \"avg_cand\": " << avg_v(cand_v) << ", \"avg_w1_surv\": " << avg_v(w1_v) << ", \"avg_t2_reranked\": " << avg_v(t2_v)
+                   << ", \"t_lut_ms\": " << avg_v(t_lut_v) << ", \"t_tier0_ms\": " << avg_v(t_t0_v)
+                   << ", \"t_b1_ms\": " << avg_v(t_b1_v) << ", \"t_b4_ms\": " << avg_v(t_b4_v) << ", \"t_t2_ms\": " << avg_v(t_t2_v)
+                   << ", \"nvme_mbs\": " << nvme_mbs
                    << ", \"logical_mb_q\": " << log_mb << ", \"app_mb_q\": " << app_mb << ", \"proc_mb_q\": " << proc_mb
                    << ", \"raf\": " << raf << ", \"cb_trips\": " << cb_trips.load() << "}";
-                std::cerr << "  [" << wl.name << " T=" << std::setw(2) << nT << " k=" << eval_k << "] " << std::setw(15) << mnames[m]
+                std::cerr << "  [" << wl.name << " T=" << std::setw(2) << nT << " C1=" << C1_pool << " np=" << nprobe_arg << "] " << std::setw(15) << mnames[m]
                           << " | QPS=" << std::setprecision(1) << std::setw(7) << qps
-                          << " | P50=" << std::setprecision(2) << std::setw(6) << p50 << " | P99=" << std::setw(6) << p99
-                          << " | R@k=" << std::setprecision(3) << rk << " | IO=" << std::setprecision(2) << proc_mb << " MB/q (RAF=" << raf << ")\n";
+                          << " | R@k=" << std::setprecision(3) << rk << " All10=" << std::setprecision(2) << a10
+                          << " | T2=" << std::setprecision(1) << avg_v(t2_v) << "/" << avg_v(cand_v)
+                          << " | IO=" << std::setprecision(2) << proc_mb << " MB/q\n";
             }
         }
         if (!is_unf) for (int s = 0; s < 4; ++s) for (auto* r : seg_rbs[s]) roaring_bitmap_free(r);
@@ -1063,12 +1089,14 @@ int main(int argc, char** argv) {
     std::string mode, dir, out_json, dump_dir;
     std::vector<int> threads = {1, 8, 24, 48};
     std::vector<std::string> wl_filter;
-    int topk = 10; bool load_b4_ram = false;
+    int topk = 10, c1_arg = 600, nprobe_arg = 8; bool load_b4_ram = false;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--no-amx") g_no_amx = true;
         else if (a == "--load-b4-ram") load_b4_ram = true;
         else if (a == "--topk" && i + 1 < argc) topk = std::clamp(std::stoi(argv[++i]), 1, 100);
+        else if (a == "--c1" && i + 1 < argc) c1_arg = std::max(10, std::stoi(argv[++i]));
+        else if (a == "--nprobe" && i + 1 < argc) nprobe_arg = std::max(1, std::stoi(argv[++i]));
         else if (a == "--dump-topids" && i + 1 < argc) dump_dir = argv[++i];
         else if (a == "--workloads" && i + 1 < argc) {
             std::stringstream ss(argv[++i]); std::string tok;
@@ -1083,7 +1111,7 @@ int main(int argc, char** argv) {
     }
     init_amx_proc(); init_amx_thr();
     if (mode == "cliff") { run_cache_cliff_bench(out_json); return 0; }
-    if (mode == "lsm") { run_bench_lsm(dir, out_json, threads, topk, load_b4_ram, wl_filter, dump_dir); return 0; }
+    if (mode == "lsm") { run_bench_lsm(dir, out_json, threads, topk, load_b4_ram, c1_arg, nprobe_arg, wl_filter, dump_dir); return 0; }
     std::cerr << "Usage: " << argv[0] << " --cache-cliff <out.json> | --bench-lsm <dir> <out.json> [--load-b4-ram] [--topk 10|50|100] [--workloads a,b] [--dump-topids <dir>]\n";
     return 1;
 }
