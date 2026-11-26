@@ -1,24 +1,51 @@
 #!/usr/bin/env python3
 """
-Hard-exclusive Slurm 48-core benchmark for:
-  1. Qdrant v1.20.2 Binary Quantization (BQ + On-Disk, always_ram=True, rescore=True, oversampling=1.0 & 2.0)
-     across vidore_v3_am and lotte_200k (ef=64, 128, 256; T=1, 8, 24, 48).
-  2. Strict Cold-Start (posix_fadvise DONTNEED before 48-client run) vs Warm-Cache check
-     on lotte_200k for Qdrant INT8, Qdrant BQ, and VectorChord HalfvecRQ.
+Hard-exclusive Slurm 48-core Socket-0 NUMA-bound benchmark for Qdrant v1.20.2 Binary Quantization (BQ + On-Disk):
+  - Uses barrier-synchronized persistent clients + warmup BEFORE timing gate (RES-P09-02).
+  - Logs Little's Law coherence ratio + idle & active Linux smaps_rollup PSS/VmRSS/VmHWM (RES-P09-03).
+  - Performs genuine Cold-Start check by STOPPING Qdrant, evicting OS page cache with posix_fadvise(DONTNEED),
+    restarting Qdrant fresh, and running 48 barrier-synchronized clients with ZERO query warmup!
 """
-import concurrent.futures
 import json
 import os
 import subprocess
 import time
 from pathlib import Path
-import numpy as np
 
 from bench_external_dbs import (
-    P09, TP, EXT_ROOT, OUT_DIR,
-    evict_dir_page_cache, get_pids_rss_and_io, load_corpus_gt,
-    calc_recall_and_all10, calc_ndcg5, get_workload_specs,
+    TP, EXT_ROOT, OUT_DIR, NUMA_PREFIX,
+    evict_dir_page_cache, get_pids_mem_and_io, load_corpus_gt,
+    get_workload_specs, run_barrier_steady_state,
 )
+
+
+def start_qdrant_bq(q_data: Path):
+    from qdrant_client import QdrantClient
+    env = os.environ.copy()
+    env["QDRANT__STORAGE__STORAGE_PATH"] = str(q_data / "storage")
+    env["QDRANT__SERVICE__HTTP_PORT"] = "56345"
+    env["QDRANT__SERVICE__GRPC_PORT"] = "56346"
+    log_fh = open(q_data / "q_bench.log", "a")
+    proc = subprocess.Popen(
+        NUMA_PREFIX + [str(TP / "qdrant" / "qdrant")],
+        env=env, stdout=log_fh, stderr=subprocess.STDOUT,
+    )
+    c0 = QdrantClient(host="127.0.0.1", port=56345, grpc_port=56346, prefer_grpc=True, timeout=120)
+    for _ in range(60):
+        try:
+            c0.get_collections()
+            break
+        except Exception:
+            time.sleep(0.5)
+    c0.close()
+    return proc, log_fh
+
+
+def stop_qdrant_bq(proc, log_fh):
+    proc.terminate()
+    proc.wait(timeout=30)
+    log_fh.close()
+    time.sleep(1.0)
 
 
 def bench_qdrant_bq_one(tag: str, rows_out: list):
@@ -32,33 +59,19 @@ def bench_qdrant_bq_one(tag: str, rows_out: list):
     wl_specs = get_workload_specs(tag, contract, qdoms)
     q_py_lists = [qmat.tolist() for qmat in q_list]
 
-    evict_dir_page_cache(q_data)
-    env = os.environ.copy()
-    env["QDRANT__STORAGE__STORAGE_PATH"] = str(q_data / "storage")
-    env["QDRANT__SERVICE__HTTP_PORT"] = "56345"
-    env["QDRANT__SERVICE__GRPC_PORT"] = "56346"
-    log_fh = open(q_data / "q_bench.log", "w")
-    proc = subprocess.Popen(
-        ["taskset", "-c", "0-47", str(TP / "qdrant" / "qdrant")],
-        env=env, stdout=log_fh, stderr=subprocess.STDOUT,
-    )
-    try:
-        c0 = QdrantClient(host="127.0.0.1", port=56345, grpc_port=56346, prefer_grpc=True, timeout=120)
-        for _ in range(40):
-            try:
-                c0.get_collections()
-                break
-            except Exception:
-                time.sleep(0.5)
-        c0.close()
+    def make_filter(spec_tuple):
+        if spec_tuple is None:
+            return None
+        k, val = spec_tuple
+        if k == "n_toks_ge":
+            return models.Filter(must=[models.FieldCondition(key="n_toks", range=models.Range(gte=val))])
+        return models.Filter(must=[models.FieldCondition(key=k, match=models.MatchValue(value=val))])
 
-        def make_filter(spec_tuple):
-            if spec_tuple is None:
-                return None
-            k, val = spec_tuple
-            if k == "n_toks_ge":
-                return models.Filter(must=[models.FieldCondition(key="n_toks", range=models.Range(gte=val))])
-            return models.Filter(must=[models.FieldCondition(key=k, match=models.MatchValue(value=val))])
+    evict_dir_page_cache(q_data)
+    proc, log_fh = start_qdrant_bq(q_data)
+    try:
+        _, idle_pss_b, _, _, _ = get_pids_mem_and_io("third_party/qdrant/qdrant")
+        idle_pss_gb = round(idle_pss_b / (1024 ** 3), 3)
 
         configs = [
             (64, 2.0, [1, 48]),
@@ -67,110 +80,96 @@ def bench_qdrant_bq_one(tag: str, rows_out: list):
             (128, 1.0, [48]),
         ]
         for ef, ovs, tgrid in configs:
+            sp = models.SearchParams(
+                hnsw_ef=ef,
+                quantization=models.QuantizationSearchParams(rescore=True, oversampling=ovs),
+            )
             for wl_name, pred_fn in wl_specs:
                 if wl_name not in wls:
                     continue
                 gt10 = wls[wl_name]["gt10"]
                 nq = len(q_list)
                 for nT in tgrid:
-                    total_q = min(nq, 40) if nT == 1 else max(nT * 4, 80)
-                    rss0, io0 = get_pids_rss_and_io("third_party/qdrant/qdrant")
-                    lats, recs, all10s, ndcg5s = [], [], [], []
+                    def make_cli(_tid):
+                        return QdrantClient(host="127.0.0.1", port=56345, grpc_port=56346, prefer_grpc=True, timeout=120)
 
-                    def worker(tid):
-                        loc_l, loc_r, loc_a, loc_n = [], [], [], []
-                        cli = QdrantClient(host="127.0.0.1", port=56345, grpc_port=56346, prefer_grpc=True, timeout=120)
-                        sp = models.SearchParams(
-                            hnsw_ef=ef,
-                            quantization=models.QuantizationSearchParams(rescore=True, oversampling=ovs),
-                        )
-                        for job in range(tid, total_q, nT):
-                            q = job % nq
-                            flt = make_filter(pred_fn(q)[1])
-                            t0 = time.perf_counter()
-                            res = cli.query_points(collection_name="docs", query=q_py_lists[q], query_filter=flt, search_params=sp, limit=10)
-                            dt_ms = (time.perf_counter() - t0) * 1000.0
-                            pids = [int(pt.id) for pt in res.points]
-                            rec, a10 = calc_recall_and_all10(pids, gt10[q])
-                            loc_l.append(dt_ms); loc_r.append(rec); loc_a.append(a10)
-                            if qrels is not None and wl_name == "NoCorr_100.00pct":
-                                loc_n.append(calc_ndcg5(pids, qrels[q]))
+                    def run_q(cli, q):
+                        flt = make_filter(pred_fn(q)[1])
+                        res = cli.query_points(collection_name="docs", query=q_py_lists[q], query_filter=flt, search_params=sp, limit=10)
+                        return [int(pt.id) for pt in res.points]
+
+                    def close_cli(cli):
                         cli.close()
-                        return loc_l, loc_r, loc_a, loc_n
 
-                    wt0 = time.perf_counter()
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=nT) as ex_pool:
-                        for ll, lr, la, ln in ex_pool.map(worker, range(nT)):
-                            lats.extend(ll); recs.extend(lr); all10s.extend(la); ndcg5s.extend(ln)
-                    ws = time.perf_counter() - wt0
-                    rss1, io1 = get_pids_rss_and_io("third_party/qdrant/qdrant")
-                    lats.sort()
+                    m = run_barrier_steady_state(
+                        nT=nT, nq=nq, gt10=gt10, qrels=qrels, wl_name=wl_name,
+                        make_client_fn=make_cli, run_query_fn=run_q, close_client_fn=close_cli,
+                        mem_match_substr="third_party/qdrant/qdrant",
+                        target_wall_s=6.0, n_warmup=2, fixed_total_q=(min(nq, 40) if nT == 1 else 0),
+                    )
                     row = {
                         "tag": tag, "db": "Qdrant_1.20.2_BQ_OnDisk", "config": f"ef={ef},os={ovs:.0f}",
-                        "workload": wl_name, "threads": nT, "n_eval": len(lats),
-                        "qps": round(len(lats) / ws, 2),
-                        "p50_ms": round(lats[len(lats) // 2], 2),
-                        "p99_ms": round(lats[min(len(lats) - 1, int(len(lats) * 0.99))], 2),
-                        "recall10": round(float(np.mean(recs)), 4),
-                        "all10": round(float(np.mean(all10s)), 4),
-                        "ndcg5": round(float(np.mean(ndcg5s)), 4) if ndcg5s else None,
-                        "proc_mb_q": round(max(0, io1 - io0) / 1048576.0 / max(1, len(lats)), 3),
-                        "rss_gb": round(max(rss0, rss1) / (1024 ** 3), 3),
+                        "workload": wl_name, "threads": nT, "idle_pss_gb": idle_pss_gb,
+                        **m,
                     }
                     rows_out.append(row)
-                    print(f"  [{tag} Qdrant-BQ ef={ef:3d} os={ovs:.0f} {wl_name} T={nT:2d}] QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms R@10={row['recall10']:.3f} All10={row['all10']:.2f} IO={row['proc_mb_q']:.2f}MB/q RSS={row['rss_gb']:.2f}G", flush=True)
+                    print(
+                        f"  [{tag} Qdrant-BQ ef={ef:3d} os={ovs:.0f} {wl_name} T={nT:2d}] "
+                        f"QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms LL={row['littles_law']:.2f} "
+                        f"n={row['n_eval']:4d} R@10={row['recall10']:.3f} All10={row['all10']:.2f} "
+                        f"IO={row['proc_mb_q']:.2f}MB/q PSS={row['active_pss_gb']:.2f}G",
+                        flush=True,
+                    )
+    finally:
+        stop_qdrant_bq(proc, log_fh)
 
-        # Also strict COLD-START vs WARM check on lotte_200k NoCorr_5.00pct_ExactNC5 & NoCorr_100.00pct (T=48, ef=128, os=2)
-        if tag == "lotte_200k":
-            for wl_name, pred_fn in wl_specs:
-                if wl_name not in ("NoCorr_5.00pct_ExactNC5", "NoCorr_100.00pct"):
-                    continue
-                evict_dir_page_cache(q_data)
+    # Genuine cold-start check on lotte_200k: stop server -> evict page cache -> restart fresh -> 0 warmup!
+    if tag == "lotte_200k":
+        sp_cold = models.SearchParams(
+            hnsw_ef=128,
+            quantization=models.QuantizationSearchParams(rescore=True, oversampling=2.0),
+        )
+        for wl_name, pred_fn in wl_specs:
+            if wl_name not in ("NoCorr_5.00pct_ExactNC5", "NoCorr_100.00pct"):
+                continue
+            evict_dir_page_cache(q_data)
+            cproc, clog = start_qdrant_bq(q_data)
+            try:
+                _, idle_pss_b, _, _, _ = get_pids_mem_and_io("third_party/qdrant/qdrant")
                 gt10 = wls[wl_name]["gt10"]
                 nq = len(q_list)
-                total_q = 192
-                rss0, io0 = get_pids_rss_and_io("third_party/qdrant/qdrant")
-                lats, recs, all10s = [], [], []
-                def cworker(tid):
-                    loc_l, loc_r, loc_a = [], [], []
-                    cli = QdrantClient(host="127.0.0.1", port=56345, grpc_port=56346, prefer_grpc=True, timeout=120)
-                    sp = models.SearchParams(hnsw_ef=128, quantization=models.QuantizationSearchParams(rescore=True, oversampling=2.0))
-                    for job in range(tid, total_q, 48):
-                        q = job % nq
-                        flt = make_filter(pred_fn(q)[1])
-                        t0 = time.perf_counter()
-                        res = cli.query_points(collection_name="docs", query=q_py_lists[q], query_filter=flt, search_params=sp, limit=10)
-                        dt_ms = (time.perf_counter() - t0) * 1000.0
-                        rec, a10 = calc_recall_and_all10([int(pt.id) for pt in res.points], gt10[q])
-                        loc_l.append(dt_ms); loc_r.append(rec); loc_a.append(a10)
+
+                def make_cli(_tid):
+                    return QdrantClient(host="127.0.0.1", port=56345, grpc_port=56346, prefer_grpc=True, timeout=120)
+
+                def run_q(cli, q):
+                    flt = make_filter(pred_fn(q)[1])
+                    res = cli.query_points(collection_name="docs", query=q_py_lists[q], query_filter=flt, search_params=sp_cold, limit=10)
+                    return [int(pt.id) for pt in res.points]
+
+                def close_cli(cli):
                     cli.close()
-                    return loc_l, loc_r, loc_a
-                wt0 = time.perf_counter()
-                with concurrent.futures.ThreadPoolExecutor(max_workers=48) as ex_pool:
-                    for ll, lr, la in ex_pool.map(cworker, range(48)):
-                        lats.extend(ll); recs.extend(lr); all10s.extend(la)
-                ws = time.perf_counter() - wt0
-                rss1, io1 = get_pids_rss_and_io("third_party/qdrant/qdrant")
-                lats.sort()
+
+                m = run_barrier_steady_state(
+                    nT=48, nq=nq, gt10=gt10, qrels=None, wl_name=wl_name,
+                    make_client_fn=make_cli, run_query_fn=run_q, close_client_fn=close_cli,
+                    mem_match_substr="third_party/qdrant/qdrant",
+                    target_wall_s=0.0, n_warmup=0, fixed_total_q=192,
+                )
                 row = {
-                    "tag": tag, "db": "Qdrant_1.20.2_BQ_OnDisk", "config": "ef=128,os=2,COLD_DONTNEED",
-                    "workload": wl_name, "threads": 48, "n_eval": len(lats),
-                    "qps": round(len(lats) / ws, 2),
-                    "p50_ms": round(lats[len(lats) // 2], 2),
-                    "p99_ms": round(lats[min(len(lats) - 1, int(len(lats) * 0.99))], 2),
-                    "recall10": round(float(np.mean(recs)), 4),
-                    "all10": round(float(np.mean(all10s)), 4),
-                    "ndcg5": None,
-                    "proc_mb_q": round(max(0, io1 - io0) / 1048576.0 / max(1, len(lats)), 3),
-                    "rss_gb": round(max(rss0, rss1) / (1024 ** 3), 3),
+                    "tag": tag, "db": "Qdrant_1.20.2_BQ_OnDisk", "config": "ef=128,os=2,COLD_RESTART",
+                    "workload": wl_name, "threads": 48, "idle_pss_gb": round(idle_pss_b / (1024 ** 3), 3),
+                    **m,
                 }
                 rows_out.append(row)
-                print(f"  [COLD {tag} Qdrant-BQ ef=128 os=2 {wl_name} T=48] QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms R@10={row['recall10']:.3f} IO={row['proc_mb_q']:.2f}MB/q RSS={row['rss_gb']:.2f}G", flush=True)
-    finally:
-        proc.terminate()
-        proc.wait(timeout=30)
-        log_fh.close()
-        time.sleep(1.0)
+                print(
+                    f"  [COLD-RESTART {tag} Qdrant-BQ ef=128 os=2 {wl_name} T=48] "
+                    f"QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms LL={row['littles_law']:.2f} "
+                    f"R@10={row['recall10']:.3f} IO={row['proc_mb_q']:.2f}MB/q PSS={row['active_pss_gb']:.2f}G",
+                    flush=True,
+                )
+            finally:
+                stop_qdrant_bq(cproc, clog)
 
 
 def main():

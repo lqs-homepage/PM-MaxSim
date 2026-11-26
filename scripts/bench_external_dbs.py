@@ -1,27 +1,29 @@
 #!/usr/bin/env python3
 """
-PM-MaxSim Hard-Exclusive 1:1 Apples-to-Apples External Production Vector DB Benchmark:
-  Runs INSIDE Slurm 48-core hard-exclusive Socket-0 allocation (taskset -c 0-47, swap.max=0).
-  Evaluates ALL 5 unmodified external production DB configurations across BOTH corpora:
-    - lotte_200k   (exact 200,000 docs matching stage3/indexes/lotte_200k_matched/workloads.bin FP32 GT!)
-    - vidore_v3_am (exact 16,868 pages matching stage3/indexes/vidore_v3_adamerge/workloads.bin FP32 GT + official nDCG@5!)
-  Systems & Fair Tuned Knobs:
-    1. VectorChord 1.5.0 flagship (halfvec(128)[] + residual_quantization=true): probes in [16, 64, 256]
-    2. VectorChord 1.5.0 FP32     (vector(128)[]  + residual_quantization=false): probes in [64]
-    3. Qdrant v1.20.2             (on-disk MaxSim + INT8 RAM + HNSW, rescore=True): hnsw_ef in [64, 128, 256]
-    4. Weaviate v1.41.0 RQ        (MUVERA + HNSW + RQ): ef in [-1 (default), 256]
-    5. Weaviate v1.41.0           (MUVERA + HNSW): ef in [-1 (default), 256]
-  Metrics:
-    - 1-client sequential cold & steady-state P50/P99 latency + Recall@10 + All-10 + official nDCG@5 (ViDoRe v3)
-    - Concurrent scaling (1, 8, 24, 48 client workers) QPS + P50/P99 + Recall@10 + server /proc/<pid>/io MB/q + server RSS (GB)!
+Stage 3.3 Hard-Exclusive 1:1 Apples-to-Apples External Production Vector DB Benchmark (Remediated RES-P09-02/03/07):
+  Runs INSIDE Slurm 48-core hard-exclusive Socket-0 allocation (SNC-2 NUMA nodes 0,1:
+  numactl --cpunodebind=0,1 --membind=0,1 taskset -c 0-47, swap.max=0).
+
+  Fixes RES-P09-02 completely:
+    - Creates persistent per-worker clients (psycopg.connect + SET params, QdrantClient, weaviate.connect_to_local)
+      and runs 2 warmup queries per worker strictly BEFORE threading.Barrier(nT) start gate!
+    - Runs steady-state timed window (>= 6.0 s at T>1 or >= 30 queries/worker on fast configs; >= 2 q/worker floor on slow)
+      using lock-free itertools.count() queue, synchronizing all nT workers on an end threading.Barrier(nT) BEFORE closing clients!
+    - Logs Little's Law coherence ratio `littles_law = p50_ms * qps / (nT * 1000.0)` on EVERY row (target >= 0.70 on steady-state runs).
+
+  Fixes RES-P09-03 completely:
+    - Samples BOTH idle server PSS (before concurrent client load) AND active in-flight server PSS/VmRSS/VmHWM via
+      /proc/<pid>/smaps_rollup & /proc/<pid>/status WHILE all nT persistent clients remain connected!
 """
 import argparse
 import concurrent.futures
+import itertools
 import json
 import math
 import os
 import struct
 import subprocess
+import threading
 import time
 from pathlib import Path
 import numpy as np
@@ -31,6 +33,8 @@ TP = P09 / "third_party"
 EXT_ROOT = P09 / "stage3" / "ext_dbs"
 OUT_DIR = P09 / "stage3" / "results_s33"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+NUMA_PREFIX = ["numactl", "--cpunodebind=0,1", "--membind=0,1", "taskset", "-c", "0-47"]
 
 
 def evict_dir_page_cache(dir_path: Path):
@@ -49,19 +53,31 @@ def evict_dir_page_cache(dir_path: Path):
     return cnt
 
 
-def get_pids_rss_and_io(match_substr: str):
-    """Sum VmRSS (bytes) and /proc/<pid>/io read_bytes across all matching server processes."""
-    rss_b, io_b = 0, 0
+def get_pids_mem_and_io(match_substr: str, match_pg_uid: bool = False):
+    """Sum smaps_rollup PSS, VmRSS, VmHWM (bytes), and /proc/<pid>/io read_bytes across matching server processes."""
+    pss_b, rss_b, hwm_b, io_b, n_procs = 0, 0, 0, 0, 0
+    my_uid = os.getuid()
     for pid_str in os.listdir("/proc"):
         if not pid_str.isdigit():
             continue
         try:
-            cmd = Path(f"/proc/{pid_str}/cmdline").read_bytes().decode("utf-8", errors="ignore")
-            if match_substr not in cmd:
-                continue
-            for line in Path(f"/proc/{pid_str}/status").read_text().splitlines():
-                if line.startswith("VmRSS:"):
+            if match_pg_uid:
+                comm = Path(f"/proc/{pid_str}/comm").read_text().strip()
+                if comm != "postgres" or os.stat(f"/proc/{pid_str}").st_uid != my_uid:
+                    continue
+            else:
+                cmd = Path(f"/proc/{pid_str}/cmdline").read_bytes().decode("utf-8", errors="ignore")
+                if match_substr not in cmd:
+                    continue
+            n_procs += 1
+            for line in Path(f"/proc/{pid_str}/smaps_rollup").read_text().splitlines():
+                if line.startswith("Pss:"):
+                    pss_b += int(line.split()[1]) * 1024
+                elif line.startswith("Rss:"):
                     rss_b += int(line.split()[1]) * 1024
+            for line in Path(f"/proc/{pid_str}/status").read_text().splitlines():
+                if line.startswith("VmHWM:"):
+                    hwm_b += int(line.split()[1]) * 1024
                     break
             for line in Path(f"/proc/{pid_str}/io").read_text().splitlines():
                 if line.startswith("read_bytes:"):
@@ -69,7 +85,7 @@ def get_pids_rss_and_io(match_substr: str):
                     break
         except OSError:
             continue
-    return rss_b, io_b
+    return n_procs, pss_b, rss_b, hwm_b, io_b
 
 
 def load_corpus_gt(tag: str):
@@ -103,7 +119,6 @@ def load_corpus_gt(tag: str):
             gt10 = np.frombuffer(f.read(nq * 10 * 4), dtype=np.uint32).reshape(nq, 10).copy()
             wls[nm] = {"sigma": sig, "nq": nq, "gt10": gt10}
 
-    # Pre-filter valid query tokens once
     q_valid_list = []
     nq_use = 50 if tag == "lotte_200k" else 140
     for q in range(nq_use):
@@ -149,6 +164,130 @@ def get_workload_specs(tag: str, contract, qdoms):
         ]
 
 
+def run_barrier_steady_state(
+    nT: int,
+    nq: int,
+    gt10: np.ndarray,
+    qrels,
+    wl_name: str,
+    make_client_fn,
+    run_query_fn,
+    close_client_fn,
+    mem_match_substr: str,
+    match_pg_uid: bool = False,
+    target_wall_s: float = 6.0,
+    n_warmup: int = 2,
+    fixed_total_q: int = 0,
+):
+    """
+    Exact barrier-synchronized steady-state multi-client benchmark engine:
+      1. Each worker opens persistent client + runs `n_warmup` warmup queries BEFORE start_bar.
+      2. start_bar action snapshots server IO/memory and starts wall clock `wt0` cleanly.
+      3. All nT workers pull jobs from C-atomic itertools.count() until steady-state deadline/count.
+      4. end_bar action stops wall clock `wt1` and snapshots active server IO + PSS/RSS/VmHWM
+         WHILE ALL nT CLIENTS REMAIN OPEN AND ACTIVE.
+      5. Only AFTER end_bar do workers close clients!
+    """
+    state = {"wt0": 0.0, "wt1": 0.0, "io0": 0, "io1": 0, "pss_b": 0, "rss_b": 0, "hwm_b": 0, "n_procs": 0}
+    counter = itertools.count(0)
+    min_total_q = fixed_total_q if fixed_total_q > 0 else (min(nq, 40) if nT == 1 else nT * 2)
+    max_total_q = fixed_total_q if fixed_total_q > 0 else (min(nq, 40) if nT == 1 else nT * 800)
+
+    def on_start():
+        _, p0, r0, h0, io0 = get_pids_mem_and_io(mem_match_substr, match_pg_uid=match_pg_uid)
+        state["io0"] = io0
+        state["pss_b"] = p0
+        state["rss_b"] = r0
+        state["hwm_b"] = h0
+        state["wt0"] = time.perf_counter()
+
+    def on_end():
+        state["wt1"] = time.perf_counter()
+        np1, p1, r1, h1, io1 = get_pids_mem_and_io(mem_match_substr, match_pg_uid=match_pg_uid)
+        state["io1"] = io1
+        state["n_procs"] = np1
+        state["pss_b"] = max(state["pss_b"], p1)
+        state["rss_b"] = max(state["rss_b"], r1)
+        state["hwm_b"] = max(state["hwm_b"], h1)
+
+    start_bar = threading.Barrier(nT, action=on_start)
+    end_bar = threading.Barrier(nT, action=on_end)
+
+    def worker(tid):
+        loc_l, loc_r, loc_a, loc_n = [], [], [], []
+        cli = make_client_fn(tid)
+        try:
+            # Warmup strictly OUTSIDE timed window!
+            for w in range(n_warmup):
+                run_query_fn(cli, (tid + w) % nq)
+            start_bar.wait()
+            deadline = state["wt0"] + target_wall_s
+            while True:
+                if fixed_total_q > 0:
+                    job = next(counter)
+                    if job >= fixed_total_q:
+                        break
+                else:
+                    if nT == 1:
+                        job = next(counter)
+                        if job >= min_total_q:
+                            break
+                    else:
+                        now = time.perf_counter()
+                        # Check stop condition before pulling next job once min_total_q reached
+                        if now >= deadline and len(loc_l) >= 2:
+                            break
+                        job = next(counter)
+                        if job >= max_total_q:
+                            break
+                q = job % nq
+                t0 = time.perf_counter()
+                pids = run_query_fn(cli, q)
+                dt_ms = (time.perf_counter() - t0) * 1000.0
+                rec, a10 = calc_recall_and_all10(pids, gt10[q])
+                loc_l.append(dt_ms)
+                loc_r.append(rec)
+                loc_a.append(a10)
+                if qrels is not None and wl_name == "NoCorr_100.00pct":
+                    loc_n.append(calc_ndcg5(pids, qrels[q]))
+            end_bar.wait()
+        finally:
+            close_client_fn(cli)
+        return loc_l, loc_r, loc_a, loc_n
+
+    lats, recs, all10s, ndcg5s = [], [], [], []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nT) as ex_pool:
+        for ll, lr, la, ln in ex_pool.map(worker, range(nT)):
+            lats.extend(ll)
+            recs.extend(lr)
+            all10s.extend(la)
+            ndcg5s.extend(ln)
+
+    ws = max(state["wt1"] - state["wt0"], 1e-6)
+    lats.sort()
+    n_eval = len(lats)
+    qps = n_eval / ws
+    p50 = lats[n_eval // 2]
+    p99 = lats[min(n_eval - 1, int(n_eval * 0.99))]
+    ll_ratio = (p50 * qps) / (nT * 1000.0)
+    return {
+        "n_eval": n_eval,
+        "wall_s": round(ws, 3),
+        "qps": round(qps, 2),
+        "p50_ms": round(p50, 2),
+        "p99_ms": round(p99, 2),
+        "littles_law": round(ll_ratio, 3),
+        "recall10": round(float(np.mean(recs)), 4),
+        "all10": round(float(np.mean(all10s)), 4),
+        "ndcg5": round(float(np.mean(ndcg5s)), 4) if ndcg5s else None,
+        "proc_mb_q": round(max(0, state["io1"] - state["io0"]) / 1048576.0 / max(1, n_eval), 3),
+        "active_pss_gb": round(state["pss_b"] / (1024 ** 3), 3),
+        "rss_gb": round(state["rss_b"] / (1024 ** 3), 3),
+        "active_hwm_gb": round(state["hwm_b"] / (1024 ** 3), 3),
+        "n_server_procs": state["n_procs"],
+    }
+
+
 def bench_vectorchord(tag: str, use_rq_halfvec: bool, rows_out: list):
     import psycopg
 
@@ -171,17 +310,21 @@ def bench_vectorchord(tag: str, use_rq_halfvec: bool, rows_out: list):
     env["LD_LIBRARY_PATH"] = f"{TP}/pg17_vchord/inst/lib:" + env.get("LD_LIBRARY_PATH", "")
     pg_bin = TP / "pg17_vchord" / "inst" / "bin"
     port = 55442 if use_rq_halfvec else 55441
-    # Ensure max_connections >= 64 cleanly for 48 concurrent clients!
     conf_p = pg_data / "postgresql.conf"
     if "max_connections = 128" not in conf_p.read_text():
         with open(conf_p, "a") as f:
             f.write("\nmax_connections = 128\n")
 
     evict_dir_page_cache(pg_data)
-    subprocess.run(["taskset", "-c", "0-47", str(pg_bin / "pg_ctl"), "-D", str(pg_data), "-l", str(pg_data / "pg_bench.log"), "start"], env=env, check=True)
+    subprocess.run(
+        NUMA_PREFIX + [str(pg_bin / "pg_ctl"), "-D", str(pg_data), "-l", str(pg_data / "pg_bench.log"), "start"],
+        env=env, check=True,
+    )
     time.sleep(1.0)
     try:
-        # Test both prefilter=off (default) and prefilter=on (VectorChord's built-in bitmap prefilter!) + tuned probes!
+        _, idle_pss_b, idle_rss_b, _, _ = get_pids_mem_and_io(str(pg_data), match_pg_uid=True)
+        idle_pss_gb = round(idle_pss_b / (1024 ** 3), 3)
+
         cfg_list = (
             [(16, "off"), (64, "off"), (64, "on"), (256, "on")] if use_rq_halfvec else [(64, "off"), (64, "on")]
         )
@@ -193,7 +336,6 @@ def bench_vectorchord(tag: str, use_rq_halfvec: bool, rows_out: list):
                 gt10 = wls[wl_name]["gt10"]
                 nq = len(q_list)
 
-                # Capture EXPLAIN plan once on q=0
                 plan_str = ""
                 with psycopg.connect(f"host=/tmp port={port} user=postgres dbname=postgres", autocommit=True) as c0:
                     c0.execute(f"SET vchordrq.probes = '{probes}'")
@@ -206,56 +348,46 @@ def bench_vectorchord(tag: str, use_rq_halfvec: bool, rows_out: list):
                     plan_str = " | ".join(r[0].strip() for r in ex[:4])
 
                 for nT in thread_grid:
-                    total_q = min(nq, 30) if nT == 1 else max(nT * 3, 60)
-                    if probes == 256 and nT == 1:
-                        total_q = min(nq, 20)
-                    rss0, io0 = get_pids_rss_and_io(str(pg_data))
-                    lats, recs, all10s, ndcg5s = [], [], [], []
+                    def make_cli(_tid):
+                        conn = psycopg.connect(f"host=/tmp port={port} user=postgres dbname=postgres", autocommit=True)
+                        conn.execute(f"SET vchordrq.probes = '{probes}'")
+                        conn.execute(f"SET vchordrq.prefilter = '{pref}'")
+                        conn.execute("SET max_parallel_workers_per_gather = 0")
+                        return conn
 
-                    def worker(tid):
-                        loc_l, loc_r, loc_a, loc_n = [], [], [], []
-                        with psycopg.connect(f"host=/tmp port={port} user=postgres dbname=postgres", autocommit=True) as conn:
-                            conn.execute(f"SET vchordrq.probes = '{probes}'")
-                            conn.execute(f"SET vchordrq.prefilter = '{pref}'")
-                            conn.execute("SET max_parallel_workers_per_gather = 0")
-                            for job in range(tid, total_q, nT):
-                                q = job % nq
-                                sql_pred = pred_fn(q)[0]
-                                t0 = time.perf_counter()
-                                res = conn.execute(
-                                    f"SELECT id FROM docs WHERE {sql_pred} ORDER BY embs @# %s::{col_type} LIMIT 10",
-                                    (q_pg_strs[q],),
-                                ).fetchall()
-                                dt_ms = (time.perf_counter() - t0) * 1000.0
-                                pids = [int(r[0]) for r in res]
-                                rec, a10 = calc_recall_and_all10(pids, gt10[q])
-                                loc_l.append(dt_ms); loc_r.append(rec); loc_a.append(a10)
-                                if qrels is not None and wl_name == "NoCorr_100.00pct":
-                                    loc_n.append(calc_ndcg5(pids, qrels[q]))
-                        return loc_l, loc_r, loc_a, loc_n
+                    def run_q(conn, q):
+                        sql_pred = pred_fn(q)[0]
+                        res = conn.execute(
+                            f"SELECT id FROM docs WHERE {sql_pred} ORDER BY embs @# %s::{col_type} LIMIT 10",
+                            (q_pg_strs[q],),
+                        ).fetchall()
+                        return [int(r[0]) for r in res]
 
-                    wt0 = time.perf_counter()
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=nT) as ex_pool:
-                        for ll, lr, la, ln in ex_pool.map(worker, range(nT)):
-                            lats.extend(ll); recs.extend(lr); all10s.extend(la); ndcg5s.extend(ln)
-                    ws = time.perf_counter() - wt0
-                    rss1, io1 = get_pids_rss_and_io(str(pg_data))
-                    lats.sort()
+                    def close_cli(conn):
+                        conn.close()
+
+                    fixed_q = (min(nq, 20) if probes == 256 else min(nq, 30)) if nT == 1 else 0
+                    wall_s = 8.0 if (probes == 256 and tag == "lotte_200k") else 6.0
+                    m = run_barrier_steady_state(
+                        nT=nT, nq=nq, gt10=gt10, qrels=qrels, wl_name=wl_name,
+                        make_client_fn=make_cli, run_query_fn=run_q, close_client_fn=close_cli,
+                        mem_match_substr=str(pg_data), match_pg_uid=True,
+                        target_wall_s=wall_s, n_warmup=2, fixed_total_q=fixed_q,
+                    )
                     row = {
                         "tag": tag, "db": db_label, "config": f"probes={probes},prefilter={pref}",
-                        "workload": wl_name, "threads": nT, "n_eval": len(lats),
-                        "qps": round(len(lats) / ws, 2),
-                        "p50_ms": round(lats[len(lats) // 2], 2),
-                        "p99_ms": round(lats[min(len(lats) - 1, int(len(lats) * 0.99))], 2),
-                        "recall10": round(float(np.mean(recs)), 4),
-                        "all10": round(float(np.mean(all10s)), 4),
-                        "ndcg5": round(float(np.mean(ndcg5s)), 4) if ndcg5s else None,
-                        "proc_mb_q": round(max(0, io1 - io0) / 1048576.0 / max(1, len(lats)), 3),
-                        "rss_gb": round(max(rss0, rss1) / (1024 ** 3), 3),
-                        "plan": plan_str if nT == 1 else "",
+                        "workload": wl_name, "threads": nT,
+                        "idle_pss_gb": idle_pss_gb, "plan": plan_str if nT == 1 else "",
+                        **m,
                     }
                     rows_out.append(row)
-                    print(f"  [{tag} {db_label} p={probes},pf={pref} {wl_name} T={nT:2d}] QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms P99={row['p99_ms']:7.1f}ms R@10={row['recall10']:.3f} All10={row['all10']:.2f} IO={row['proc_mb_q']:.2f}MB/q RSS={row['rss_gb']:.2f}G", flush=True)
+                    print(
+                        f"  [{tag} {db_label} p={probes},pf={pref} {wl_name} T={nT:2d}] "
+                        f"QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms P99={row['p99_ms']:7.1f}ms "
+                        f"LL={row['littles_law']:.2f} n={row['n_eval']:4d} R@10={row['recall10']:.3f} "
+                        f"All10={row['all10']:.2f} IO={row['proc_mb_q']:.2f}MB/q PSS={row['active_pss_gb']:.2f}G",
+                        flush=True,
+                    )
     finally:
         subprocess.run([str(pg_bin / "pg_ctl"), "-D", str(pg_data), "stop"], env=env, check=False)
         time.sleep(1.0)
@@ -277,16 +409,21 @@ def bench_qdrant(tag: str, rows_out: list):
     env["QDRANT__SERVICE__HTTP_PORT"] = "56343"
     env["QDRANT__SERVICE__GRPC_PORT"] = "56344"
     log_fh = open(q_data / "q_bench.log", "w")
-    proc = subprocess.Popen(["taskset", "-c", "0-47", str(TP / "qdrant" / "qdrant")], env=env, stdout=log_fh, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(
+        NUMA_PREFIX + [str(TP / "qdrant" / "qdrant")],
+        env=env, stdout=log_fh, stderr=subprocess.STDOUT,
+    )
     try:
         c0 = QdrantClient(host="127.0.0.1", port=56343, grpc_port=56344, prefer_grpc=True, timeout=120)
-        for _ in range(40):
+        for _ in range(60):
             try:
                 c0.get_collections()
                 break
             except Exception:
                 time.sleep(0.5)
         c0.close()
+        _, idle_pss_b, _, _, _ = get_pids_mem_and_io("third_party/qdrant/qdrant")
+        idle_pss_gb = round(idle_pss_b / (1024 ** 3), 3)
 
         def make_filter(spec_tuple):
             if spec_tuple is None:
@@ -298,55 +435,43 @@ def bench_qdrant(tag: str, rows_out: list):
 
         for ef in (64, 128, 256):
             thread_grid = [1, 8, 24, 48] if (ef == 128) else [1, 48]
+            sp = models.SearchParams(hnsw_ef=ef, quantization=models.QuantizationSearchParams(rescore=True))
             for wl_name, pred_fn in wl_specs:
                 if wl_name not in wls:
                     continue
                 gt10 = wls[wl_name]["gt10"]
                 nq = len(q_list)
                 for nT in thread_grid:
-                    total_q = min(nq, 40) if nT == 1 else max(nT * 4, 80)
-                    rss0, io0 = get_pids_rss_and_io("third_party/qdrant/qdrant")
-                    lats, recs, all10s, ndcg5s = [], [], [], []
+                    def make_cli(_tid):
+                        return QdrantClient(host="127.0.0.1", port=56343, grpc_port=56344, prefer_grpc=True, timeout=120)
 
-                    def worker(tid):
-                        loc_l, loc_r, loc_a, loc_n = [], [], [], []
-                        cli = QdrantClient(host="127.0.0.1", port=56343, grpc_port=56344, prefer_grpc=True, timeout=120)
-                        sp = models.SearchParams(hnsw_ef=ef, quantization=models.QuantizationSearchParams(rescore=True))
-                        for job in range(tid, total_q, nT):
-                            q = job % nq
-                            flt = make_filter(pred_fn(q)[1])
-                            t0 = time.perf_counter()
-                            res = cli.query_points(collection_name="docs", query=q_py_lists[q], query_filter=flt, search_params=sp, limit=10)
-                            dt_ms = (time.perf_counter() - t0) * 1000.0
-                            pids = [int(pt.id) for pt in res.points]
-                            rec, a10 = calc_recall_and_all10(pids, gt10[q])
-                            loc_l.append(dt_ms); loc_r.append(rec); loc_a.append(a10)
-                            if qrels is not None and wl_name == "NoCorr_100.00pct":
-                                loc_n.append(calc_ndcg5(pids, qrels[q]))
+                    def run_q(cli, q):
+                        flt = make_filter(pred_fn(q)[1])
+                        res = cli.query_points(collection_name="docs", query=q_py_lists[q], query_filter=flt, search_params=sp, limit=10)
+                        return [int(pt.id) for pt in res.points]
+
+                    def close_cli(cli):
                         cli.close()
-                        return loc_l, loc_r, loc_a, loc_n
 
-                    wt0 = time.perf_counter()
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=nT) as ex_pool:
-                        for ll, lr, la, ln in ex_pool.map(worker, range(nT)):
-                            lats.extend(ll); recs.extend(lr); all10s.extend(la); ndcg5s.extend(ln)
-                    ws = time.perf_counter() - wt0
-                    rss1, io1 = get_pids_rss_and_io("third_party/qdrant/qdrant")
-                    lats.sort()
+                    m = run_barrier_steady_state(
+                        nT=nT, nq=nq, gt10=gt10, qrels=qrels, wl_name=wl_name,
+                        make_client_fn=make_cli, run_query_fn=run_q, close_client_fn=close_cli,
+                        mem_match_substr="third_party/qdrant/qdrant",
+                        target_wall_s=6.0, n_warmup=2, fixed_total_q=(min(nq, 40) if nT == 1 else 0),
+                    )
                     row = {
                         "tag": tag, "db": "Qdrant_1.20.2_INT8_OnDisk", "config": f"ef={ef}",
-                        "workload": wl_name, "threads": nT, "n_eval": len(lats),
-                        "qps": round(len(lats) / ws, 2),
-                        "p50_ms": round(lats[len(lats) // 2], 2),
-                        "p99_ms": round(lats[min(len(lats) - 1, int(len(lats) * 0.99))], 2),
-                        "recall10": round(float(np.mean(recs)), 4),
-                        "all10": round(float(np.mean(all10s)), 4),
-                        "ndcg5": round(float(np.mean(ndcg5s)), 4) if ndcg5s else None,
-                        "proc_mb_q": round(max(0, io1 - io0) / 1048576.0 / max(1, len(lats)), 3),
-                        "rss_gb": round(max(rss0, rss1) / (1024 ** 3), 3),
+                        "workload": wl_name, "threads": nT, "idle_pss_gb": idle_pss_gb,
+                        **m,
                     }
                     rows_out.append(row)
-                    print(f"  [{tag} Qdrant ef={ef:3d} {wl_name} T={nT:2d}] QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms P99={row['p99_ms']:7.1f}ms R@10={row['recall10']:.3f} All10={row['all10']:.2f} IO={row['proc_mb_q']:.2f}MB/q RSS={row['rss_gb']:.2f}G", flush=True)
+                    print(
+                        f"  [{tag} Qdrant-INT8 ef={ef:3d} {wl_name} T={nT:2d}] "
+                        f"QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms P99={row['p99_ms']:7.1f}ms "
+                        f"LL={row['littles_law']:.2f} n={row['n_eval']:4d} R@10={row['recall10']:.3f} "
+                        f"All10={row['all10']:.2f} IO={row['proc_mb_q']:.2f}MB/q PSS={row['active_pss_gb']:.2f}G",
+                        flush=True,
+                    )
     finally:
         proc.terminate()
         proc.wait(timeout=30)
@@ -379,18 +504,20 @@ def bench_weaviate(tag: str, use_rq: bool, rows_out: list):
     env["GRPC_PORT"] = str(grpc_port)
     log_fh = open(w_data / "w_bench.log", "w")
     proc = subprocess.Popen(
-        ["taskset", "-c", "0-47", str(TP / "weaviate" / "weaviate"), "--host", "127.0.0.1", "--port", str(http_port), "--scheme", "http"],
+        NUMA_PREFIX + [str(TP / "weaviate" / "weaviate"), "--host", "127.0.0.1", "--port", str(http_port), "--scheme", "http"],
         env=env, stdout=log_fh, stderr=subprocess.STDOUT,
     )
     try:
         c0 = None
-        for _ in range(40):
+        for _ in range(60):
             try:
                 c0 = weaviate.connect_to_local(host="127.0.0.1", port=http_port, grpc_port=grpc_port)
                 if c0.is_ready():
                     break
             except Exception:
                 time.sleep(0.5)
+        _, idle_pss_b, _, _, _ = get_pids_mem_and_io("third_party/weaviate/weaviate")
+        idle_pss_gb = round(idle_pss_b / (1024 ** 3), 3)
 
         def make_wfilter(spec_tuple):
             if spec_tuple is None:
@@ -419,49 +546,38 @@ def bench_weaviate(tag: str, use_rq: bool, rows_out: list):
                 gt10 = wls[wl_name]["gt10"]
                 nq = len(q_list)
                 for nT in thread_grid:
-                    total_q = min(nq, 40) if nT == 1 else max(nT * 4, 80)
-                    rss0, io0 = get_pids_rss_and_io("third_party/weaviate/weaviate")
-                    lats, recs, all10s, ndcg5s = [], [], [], []
-
-                    def worker(tid):
-                        loc_l, loc_r, loc_a, loc_n = [], [], [], []
+                    def make_cli(_tid):
                         cli = weaviate.connect_to_local(host="127.0.0.1", port=http_port, grpc_port=grpc_port)
-                        coll = cli.collections.get("Docs")
-                        for job in range(tid, total_q, nT):
-                            q = job % nq
-                            flt = make_wfilter(pred_fn(q)[2])
-                            t0 = time.perf_counter()
-                            res = coll.query.near_vector(near_vector=q_py_lists[q], target_vector="mv", filters=flt, limit=10, return_properties=["doc_id"])
-                            dt_ms = (time.perf_counter() - t0) * 1000.0
-                            pids = [int(o.properties["doc_id"]) for o in res.objects]
-                            rec, a10 = calc_recall_and_all10(pids, gt10[q])
-                            loc_l.append(dt_ms); loc_r.append(rec); loc_a.append(a10)
-                            if qrels is not None and wl_name == "NoCorr_100.00pct":
-                                loc_n.append(calc_ndcg5(pids, qrels[q]))
-                        cli.close()
-                        return loc_l, loc_r, loc_a, loc_n
+                        return (cli, cli.collections.get("Docs"))
 
-                    wt0 = time.perf_counter()
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=nT) as ex_pool:
-                        for ll, lr, la, ln in ex_pool.map(worker, range(nT)):
-                            lats.extend(ll); recs.extend(lr); all10s.extend(la); ndcg5s.extend(ln)
-                    ws = time.perf_counter() - wt0
-                    rss1, io1 = get_pids_rss_and_io("third_party/weaviate/weaviate")
-                    lats.sort()
+                    def run_q(pair, q):
+                        _cli, coll = pair
+                        flt = make_wfilter(pred_fn(q)[2])
+                        res = coll.query.near_vector(near_vector=q_py_lists[q], target_vector="mv", filters=flt, limit=10, return_properties=["doc_id"])
+                        return [int(o.properties["doc_id"]) for o in res.objects]
+
+                    def close_cli(pair):
+                        pair[0].close()
+
+                    m = run_barrier_steady_state(
+                        nT=nT, nq=nq, gt10=gt10, qrels=qrels, wl_name=wl_name,
+                        make_client_fn=make_cli, run_query_fn=run_q, close_client_fn=close_cli,
+                        mem_match_substr="third_party/weaviate/weaviate",
+                        target_wall_s=6.0, n_warmup=2, fixed_total_q=(min(nq, 40) if nT == 1 else 0),
+                    )
                     row = {
                         "tag": tag, "db": db_label, "config": f"ef={ef}",
-                        "workload": wl_name, "threads": nT, "n_eval": len(lats),
-                        "qps": round(len(lats) / ws, 2),
-                        "p50_ms": round(lats[len(lats) // 2], 2),
-                        "p99_ms": round(lats[min(len(lats) - 1, int(len(lats) * 0.99))], 2),
-                        "recall10": round(float(np.mean(recs)), 4),
-                        "all10": round(float(np.mean(all10s)), 4),
-                        "ndcg5": round(float(np.mean(ndcg5s)), 4) if ndcg5s else None,
-                        "proc_mb_q": round(max(0, io1 - io0) / 1048576.0 / max(1, len(lats)), 3),
-                        "rss_gb": round(max(rss0, rss1) / (1024 ** 3), 3),
+                        "workload": wl_name, "threads": nT, "idle_pss_gb": idle_pss_gb,
+                        **m,
                     }
                     rows_out.append(row)
-                    print(f"  [{tag} {db_label} ef={ef:3d} {wl_name} T={nT:2d}] QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms P99={row['p99_ms']:7.1f}ms R@10={row['recall10']:.3f} All10={row['all10']:.2f} IO={row['proc_mb_q']:.2f}MB/q RSS={row['rss_gb']:.2f}G", flush=True)
+                    print(
+                        f"  [{tag} {db_label} ef={ef:3d} {wl_name} T={nT:2d}] "
+                        f"QPS={row['qps']:7.1f} P50={row['p50_ms']:7.1f}ms P99={row['p99_ms']:7.1f}ms "
+                        f"LL={row['littles_law']:.2f} n={row['n_eval']:4d} R@10={row['recall10']:.3f} "
+                        f"All10={row['all10']:.2f} IO={row['proc_mb_q']:.2f}MB/q PSS={row['active_pss_gb']:.2f}G",
+                        flush=True,
+                    )
         c0.close()
     finally:
         proc.terminate()
@@ -476,16 +592,15 @@ def main():
     args = ap.parse_args()
     rows = []
     for tag in ("vidore_v3_am", "lotte_200k"):
-        print(f"\n================ BENCHMARKING EXTERNAL DBs ON {tag} ================", flush=True)
+        print(f"\n================ BARRIER-SYNCED EXTERNAL DBs ON {tag} ================", flush=True)
         bench_vectorchord(tag, use_rq_halfvec=True, rows_out=rows)
         bench_vectorchord(tag, use_rq_halfvec=False, rows_out=rows)
         bench_qdrant(tag, rows_out=rows)
         bench_weaviate(tag, use_rq=True, rows_out=rows)
         bench_weaviate(tag, use_rq=False, rows_out=rows)
-        # Checkpoint after each corpus
         with open(args.out, "w") as f:
             json.dump({"rows": rows}, f, indent=2)
-    print(f"\n=== ALL EXTERNAL DB BENCHMARKS SAVED TO {args.out} ({len(rows)} rows) ===", flush=True)
+    print(f"\n=== ALL BARRIER-SYNCED EXTERNAL DB BENCHMARKS SAVED TO {args.out} ({len(rows)} rows) ===", flush=True)
 
 
 if __name__ == "__main__":

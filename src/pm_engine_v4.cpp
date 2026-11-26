@@ -13,19 +13,19 @@
 //          - Expanded 1,000,000-pair startup unit test covering B=1 AND B=4, is_unit=true (real FP16 unit vectors!) AND false,
 //            non-unit ||q_i||_2 in [0.1, 10.0], zero-padding masks, independent Q_32 != Q_rot, and Part 1 + Part 2!
 //          - Runtime --no-amx switch forcing AVX-512 vdpbf16ps LUT build for fair AMX-BF16 vs AVX-512 ablation
-//     3. Theorem 4A Dynamic tau1* + Theorem 4B Pure Rule B (gamma=0.08, exact W_max=min(m, u_max)) with smooth
-//        two-stage large-N_P fallback (expanded nprobe=64 probe before full Path I scan, eliminating P99 tail spikes!).
+//     3. Theorem 4A Dynamic tau1* + Theorem 4B Pure Rule B (gamma=0.08, exact W_max=min(m, u_max)) with exact
+//        Theorem 4B pure Path I fallback on circuit-breaker trip (zero recall inversion!).
 //     4. Multi-Segment Dynamic LSM + Writable Delta Buffer (up to 50K docs) + Tombstones + Compaction measurement
 //        (supports 1-segment LoTTE/ViDoRe and 3-segment MS MARCO 8.84M seamlessly!).
 //     5. Mandatory Barrier-to-Barrier steady-state QPS timing, RAM-only Tier-0 warmup, and kernel /proc/self/io audit.
 //
 // Compile:
 //   g++ -O3 -march=native -mamx-tile -mamx-bf16 -std=c++20 -fopenmp -Wall -Wextra
-//     -I$(P09_ROOT)/third_party/CRoaring
-//     -I$(P09_ROOT)/third_party/install/include
+//     -I$P09_ROOT/third_party/CRoaring
+//     -I$P09_ROOT/third_party/install/include
 //     pm_engine_v4.cpp
-//     $(P09_ROOT)/third_party/CRoaring/roaring.o
-//     $(P09_ROOT)/third_party/install/lib/liburing.a
+//     $P09_ROOT/third_party/CRoaring/roaring.o
+//     $P09_ROOT/third_party/install/lib/liburing.a
 //     -o pm_engine_v4
 
 #include <algorithm>
@@ -225,13 +225,13 @@ struct ThreadUringReader {
     uint64_t ops_read = 0;
     uint32_t bytes_per_tok = 256;
 
-    void init(const SharedDiskFile* s, size_t init_buf_mb = 32, uint32_t bpt = 256) {
+    void init(const SharedDiskFile* s, size_t init_buf_kb = 256, uint32_t bpt = 256) {
         store = s;
         bytes_per_tok = bpt;
         if (s && !s->in_ram) {
             if (io_uring_queue_init(128, &ring, 0) < 0) { std::perror("io_uring_queue_init"); std::exit(1); }
             ring_ok = true;
-            bounce.resize(init_buf_mb * 1024ULL * 1024ULL, 4096);
+            bounce.resize(init_buf_kb * 1024ULL, 4096);
         }
     }
 
@@ -1431,37 +1431,59 @@ static double calc_recall_k(const uint32_t* pred, int np, const uint32_t* gt, in
     return (double)h / (double)k;
 }
 
-// Pure WARP-style centroid-sum IVF (no decoupled K0_4b filter, no circuit breaker)
+// Authentic Proposition 2 WARP-style centroid IVF with exact per-query-token max & boundary imputation m_i
+// Matches theory-v3-optionB.md:80-82 and Stage-2 r3-2.5/pm_torture_test_r25.cpp:959-1005 bit-for-bit!
 static std::vector<uint32_t> tier0_warp_pure(const SegmentIndex& idx, const roaring_bitmap_t* pred_rb,
                                              const float* S_bf16, uint32_t vmask, int nprobe_c, int C1, bool is_unf) {
     CentroidTopK topk; topk.select(S_bf16, idx.K, vmask, nprobe_c);
-    std::vector<std::pair<uint32_t, float>> hits; hits.reserve(16384);
+    float base_imp = 0.0f;
+    for (int t = 0; t < 32; ++t) if ((vmask >> t) & 1u) base_imp += topk.min_probed_score[t];
+    struct WarpHit { uint32_t did; uint8_t tok; float gain; };
+    std::vector<WarpHit> hits; hits.reserve(16384);
+    std::vector<uint32_t> tmp;
     uint32_t vm = vmask;
     while (vm) {
         int t = __builtin_ctz(vm); vm &= vm - 1;
+        float imp_t = topk.min_probed_score[t];
         for (const auto& [sc, cid] : topk.top_per_tok[t]) {
+            if (sc <= imp_t) continue;
+            float gain = sc - imp_t;
             const roaring_bitmap_t* pl = idx.inv_roaring[cid];
             if (is_unf) {
                 uint64_t n = roaring_bitmap_get_cardinality(pl);
-                std::vector<uint32_t> tmp(n); roaring_bitmap_to_uint32_array(pl, tmp.data());
-                for (uint32_t d : tmp) hits.push_back({d, sc});
+                if (n > 0) {
+                    tmp.resize(n); roaring_bitmap_to_uint32_array(pl, tmp.data());
+                    for (uint32_t d : tmp) hits.push_back({d, (uint8_t)t, gain});
+                }
             } else {
                 roaring_bitmap_t* inter = roaring_bitmap_and(pl, pred_rb);
                 uint64_t n = roaring_bitmap_get_cardinality(inter);
                 if (n > 0) {
-                    std::vector<uint32_t> tmp(n); roaring_bitmap_to_uint32_array(inter, tmp.data());
-                    for (uint32_t d : tmp) hits.push_back({d, sc});
+                    tmp.resize(n); roaring_bitmap_to_uint32_array(inter, tmp.data());
+                    for (uint32_t d : tmp) hits.push_back({d, (uint8_t)t, gain});
                 }
                 roaring_bitmap_free(inter);
             }
         }
     }
     if (hits.empty()) return {};
-    std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::sort(hits.begin(), hits.end(), [](const WarpHit& a, const WarpHit& b) {
+        return (a.did != b.did) ? (a.did < b.did) : (a.tok < b.tok);
+    });
     std::vector<HeapItem> agg; agg.reserve(hits.size() / 2 + 1);
     for (size_t i = 0; i < hits.size(); ) {
-        uint32_t d = hits[i].first; float s = 0.0f;
-        while (i < hits.size() && hits[i].first == d) { s += hits[i].second; ++i; }
+        uint32_t d = hits[i].did;
+        float s = base_imp;
+        while (i < hits.size() && hits[i].did == d) {
+            uint8_t tk = hits[i].tok;
+            float best_g = hits[i].gain;
+            ++i;
+            while (i < hits.size() && hits[i].did == d && hits[i].tok == tk) {
+                if (hits[i].gain > best_g) best_g = hits[i].gain;
+                ++i;
+            }
+            s += best_g;
+        }
         agg.push_back({s, d});
     }
     int k = std::min(C1, (int)agg.size());
@@ -1709,6 +1731,7 @@ int main(int argc, char** argv) {
        << ", \"unit_test\": {\"b4_pairs\": " << ut.n_pairs_b4 << ", \"b4_viol\": " << ut.viol_b4
        << ", \"b1_pairs\": " << ut.n_pairs_b1 << ", \"b1_viol\": " << ut.viol_b1 << "},\n  \"rows\": [\n";
     bool first = true;
+    double max_active_pss = 0.0, max_active_rss = 0.0, max_active_hwm = 0.0;
 
     for (const auto& wl : idx.workloads) {
         if (!wl_filter.empty() && std::find(wl_filter.begin(), wl_filter.end(), wl.name) == wl_filter.end()) continue;
@@ -1759,17 +1782,19 @@ int main(int argc, char** argv) {
                 {
                     init_amx_thread();
                     ThreadUringReader tr_b1, tr_b4r, tr_b4n, tr_t2;
-                    if (idx.has_b1) tr_b1.init(&idx.tier1_b1_ram, 1, 22);
-                    if (idx.has_b4_ram) tr_b4r.init(&idx.tier1_b4_ram, 1, 70);
-                    tr_b4n.init(&idx.tier1_b4_nvme, 16, 70);
-                    tr_t2.init(&idx.tier2_nvme, 32, 256);
+                    if (idx.has_b1 && m == 0) tr_b1.init(&idx.tier1_b1_ram, 64, 22);
+                    if (idx.has_b4_ram && (m == 1 || m == 4)) tr_b4r.init(&idx.tier1_b4_ram, 64, 70);
+                    if (m == 0 || m == 2 || m == 3 || m == 7) tr_b4n.init(&idx.tier1_b4_nvme, 256, 70);
+                    if (m != 3 && m != 4) tr_t2.init(&idx.tier2_nvme, 256, 256);
                     QueryLUT lut;
+                    bool sampled_mhz = false;
                     #pragma omp barrier
                     #pragma omp single
                     { io0 = read_proc_self_io_read_bytes(); wt0 = monotonic_ns(); }
                     while (true) {
                         int job = next_q.fetch_add(1, std::memory_order_relaxed);
                         if (job >= total_q) break;
+                        if (!sampled_mhz && omp_get_thread_num() == 0) { mhz = sample_active_mhz_0_47(nT); sampled_mhz = true; }
                         int q = job % nq;
                         const float* Qq = idx.Q_32.data() + (size_t)q * 32 * 128;
                         const float* Qrq = idx.Q_rot.data() + (size_t)q * 32 * 128;
@@ -1818,11 +1843,19 @@ int main(int argc, char** argv) {
                         if (!dumped_ids.empty() && job < nq) {
                             for (int r = 0; r < std::min(topk, st.n_out); ++r) dumped_ids[(size_t)q * topk + r] = st.topk_ids[r];
                         }
-                        if (job == total_q / 2 && omp_get_thread_num() == 0) mhz = sample_active_mhz_0_47(nT);
                     }
                     #pragma omp barrier
                     #pragma omp single
-                    { wt1 = monotonic_ns(); pio = read_proc_self_io_read_bytes() - io0; }
+                    {
+                        wt1 = monotonic_ns();
+                        pio = read_proc_self_io_read_bytes() - io0;
+                        double ap = 0.0, ar = 0.0, ah = 0.0;
+                        read_proc_self_mem_gb(ap, ar, ah);
+                        if (ap > max_active_pss) max_active_pss = ap;
+                        if (ar > max_active_rss) max_active_rss = ar;
+                        if (ah > max_active_hwm) max_active_hwm = ah;
+                    }
+                    #pragma omp barrier
                     app_bytes.fetch_add(tr_b4n.bytes_read + tr_t2.bytes_read, std::memory_order_relaxed);
                     log_bytes.fetch_add(tr_b4n.logical_bytes_read + tr_t2.logical_bytes_read, std::memory_order_relaxed);
                 }
@@ -1867,6 +1900,10 @@ int main(int argc, char** argv) {
     }
     double pss_gb = 0, rss_gb = 0, hwm_gb = 0;
     read_proc_self_mem_gb(pss_gb, rss_gb, hwm_gb);
-    fo << "\n  ],\n  \"proc_mem_gb\": {\"pss_gb\": " << pss_gb << ", \"rss_gb\": " << rss_gb << ", \"vm_hwm_gb\": " << hwm_gb << "}\n}\n";
+    if (hwm_gb > max_active_hwm) max_active_hwm = hwm_gb;
+    fo << "\n  ],\n  \"proc_mem_gb\": {\"idle_pss_gb\": " << pss_gb
+       << ", \"active_pss_gb\": " << max_active_pss << ", \"active_rss_gb\": " << max_active_rss
+       << ", \"pss_gb\": " << max_active_pss << ", \"rss_gb\": " << max_active_rss
+       << ", \"vm_hwm_gb\": " << max_active_hwm << "}\n}\n";
     return 0;
 }

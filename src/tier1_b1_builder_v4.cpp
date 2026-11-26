@@ -1,4 +1,4 @@
-// PM-MaxSim Provably Sound 1-bit Tier-1 RAM Builder + Exact FP16 Max-Norm Scanner (M3-B03 & Split_B1_B4_T3):
+// Stage 3 (3.2) Provably Sound 1-bit Tier-1 RAM Builder + Exact FP16 Max-Norm Scanner (M3-B03 & Split_B1_B4_T3):
 //   1. Scans EVERY FP16 vector in tier2_fp16.nvme to compute exact M_norm = max_{x in D_fp16} ||x||_2
 //      and saves m_norm.bin (resolves M3-B03 IEEE-754 FP16 half-ULP norm inflation!).
 //   2. Encodes every token's rotated residual (x_fp16 - c_fp32) @ P_fp32 into exact 1-bit Extended RaBitQ
