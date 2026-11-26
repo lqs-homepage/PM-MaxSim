@@ -1,0 +1,28 @@
+corpus,system,build_total_s,build_breakdown,disk_gb,measured_pss_or_rss_gb,peak_hwm_or_sum_rss_gb,memory_metric
+lotte_200k_matched,PM-MaxSim (PM_NVME_T1),55.43,"km=1.39s,asgn=8.1s,b4t2=37.08s,b1=8.85s",8.7,0.269,2.49,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+lotte_200k_matched,PM-MaxSim (Split_B1_B4_T3),55.43,"km=1.39s,asgn=8.1s,b4t2=37.08s,b1=8.85s",8.7,0.748,2.953,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+lotte_200k_matched,PM-MaxSim (PM_DRAM_T1),55.43,"km=1.39s,asgn=8.1s,b4t2=37.08s,b1=8.85s",8.7,2.129,4.364,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+vidore_v3_adamerge,PM-MaxSim (PM_NVME_T1),18.49,"km=8.48s,asgn=1.56s,b4t2=6.84s,b1=1.62s",1.4,0.15,2.356,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+vidore_v3_adamerge,PM-MaxSim (Split_B1_B4_T3),18.49,"km=8.48s,asgn=1.56s,b4t2=6.84s,b1=1.62s",1.4,0.228,2.433,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+vidore_v3_adamerge,PM-MaxSim (PM_DRAM_T1),18.49,"km=8.48s,asgn=1.56s,b4t2=6.84s,b1=1.62s",1.4,0.408,2.613,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+vidore_v3_raw,PM-MaxSim (PM_NVME_T1),,,4.4,0.552,3.096,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+vidore_v3_raw,PM-MaxSim (Split_B1_B4_T3),,,4.4,0.42,2.622,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+vidore_v3_raw,PM-MaxSim (PM_DRAM_T1),,,4.4,1.003,3.217,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+lotte_2p8m,PM-MaxSim (PM_NVME_T1),,,100.2,2.365,4.589,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+lotte_2p8m,PM-MaxSim (Split_B1_B4_T3),,,100.2,8.054,10.276,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+lotte_2p8m,PM-MaxSim (PM_DRAM_T1),,,100.2,25.262,27.483,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+msmarco_8m_lsm,PM-MaxSim (PM_NVME_T1),,,228.0,3.957,11.102,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+msmarco_8m_lsm,PM-MaxSim (Split_B1_B4_T3),,,228.0,16.375,23.52,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+msmarco_8m_lsm,PM-MaxSim (PM_DRAM_T1),,,228.0,58.371,65.511,Linux /proc/self/smaps_rollup PSS & VmHWM (isolated tier)
+lotte_200k,VectorChord_1.5_HalfvecRQ,1218.8,idx_s=194.7s,31.0,10.596,16.142,54-proc smaps_rollup PSS & sum-RSS
+lotte_200k,VectorChord_1.5_FP32,1479.7,idx_s=254.7s,39.0,7.217,12.517,54-proc smaps_rollup PSS & sum-RSS
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,824.2,upsert+hnsw,25.0,11.02,11.02,single-proc /proc/<pid>/status VmRSS
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,772.6,upsert+hnsw,23.0,3.8,3.8,single-proc /proc/<pid>/status VmRSS
+lotte_200k,Weaviate_1.41_MUVERA_RQ,606.7,upsert+hnsw,14.0,3.988,3.988,single-proc /proc/<pid>/status VmRSS
+lotte_200k,Weaviate_1.41_MUVERA,639.2,upsert+hnsw,14.0,17.185,17.185,single-proc /proc/<pid>/status VmRSS
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,250.8,idx_s=28.8s,5.2,5.22,9.204,54-proc smaps_rollup PSS & sum-RSS
+vidore_v3_am,VectorChord_1.5_FP32,213.7,idx_s=28.2s,8.9,5.41,8.719,54-proc smaps_rollup PSS & sum-RSS
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,362.7,upsert+hnsw,3.3,1.94,1.94,single-proc /proc/<pid>/status VmRSS
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,336.5,upsert+hnsw,1.9,1.811,1.811,single-proc /proc/<pid>/status VmRSS
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,107.9,upsert+hnsw,2.1,2.148,2.148,single-proc /proc/<pid>/status VmRSS
+vidore_v3_am,Weaviate_1.41_MUVERA,93.4,upsert+hnsw,2.0,2.721,2.721,single-proc /proc/<pid>/status VmRSS

@@ -61,6 +61,28 @@ static uint64_t read_proc_self_io_read_bytes() {
     return 0;
 }
 
+static void read_proc_self_mem_gb(double& pss_gb, double& rss_gb, double& hwm_gb) {
+    pss_gb = rss_gb = hwm_gb = 0.0;
+    {
+        std::ifstream f("/proc/self/smaps_rollup");
+        std::string line;
+        while (std::getline(f, line)) {
+            if (line.rfind("Pss:", 0) == 0) pss_gb = std::stod(line.substr(4)) / 1048576.0;
+            else if (line.rfind("Rss:", 0) == 0) rss_gb = std::stod(line.substr(4)) / 1048576.0;
+        }
+    }
+    {
+        std::ifstream f("/proc/self/status");
+        std::string line;
+        while (std::getline(f, line)) {
+            if (line.rfind("VmHWM:", 0) == 0) { hwm_gb = std::stod(line.substr(6)) / 1048576.0; break; }
+        }
+    }
+}
+
+static double g_delta = 0.05;
+static bool g_force_path3 = false;
+
 template <typename T>
 struct AlignedVec {
     T* ptr = nullptr; size_t sz = 0;
@@ -251,11 +273,13 @@ struct Segment {
         return true;
     }
 
-    uint64_t dynamic_tau1(int nprobe_c, int nq_v = 32) const {
+    // Per-segment Theorem 4A crossover tau1* (shared CentroidTopK overhead amortized across S=3 base LSM segments)
+    uint64_t dynamic_tau1(int nprobe_c, int nq_v = 32, int n_base_segs = 3) const {
         double mp = std::min<double>((double)K, (double)nq_v * nprobe_c * 0.85);
         double kappa_u = 1.0 - std::exp(-(mp * u_avg) / (double)K);
         if (kappa_u >= 0.92) return N_docs + 1;
-        return (uint64_t)std::clamp(9.0e5 / (u_avg * 0.65 * (1.0 - kappa_u)), 8192.0, (double)N_docs + 1.0);
+        double seg_overhead_ns = 9.0e5 / std::max(1, n_base_segs);
+        return (uint64_t)std::clamp(seg_overhead_ns / (u_avg * 0.65 * (1.0 - kappa_u)), 4096.0, (double)N_docs + 1.0);
     }
 };
 
@@ -402,7 +426,7 @@ struct QPrepV4 {
     uint32_t vmask = 0; bool use_cap = true;
 
     void init(const float* Q32, const float* Qrot, uint32_t vm, int nvq, double m_norm, bool build_b1, bool part2_allk = false, int topk = 10) {
-        vmask = vm; double tc = get_t_coeff_v4(nvq, part2_allk, topk);
+        vmask = vm; double tc = get_t_coeff_v4(nvq, part2_allk, topk, g_delta);
         for (int t = 0; t < 32; ++t) {
             if (!((vm >> t) & 1u)) { q_i8_scale[t] = q_b1_scale[t] = q_et_mult[t] = q_eps0[t] = 0; q_unit_cap[t] = 1e30f; continue; }
             uint16_t qbf[128];
@@ -636,14 +660,18 @@ static double recall_k(const HeapItem* out, int n, const uint32_t* gt, int k) {
 
 static void run_bench_lsm(const std::string& root, const std::string& out_json, const std::vector<int>& threads,
                           int topk, bool load_b4_ram, int c1_arg, int nprobe_arg,
-                          const std::vector<std::string>& wl_filter, const std::string& dump_dir) {
+                          const std::vector<std::string>& wl_filter, const std::string& dump_dir,
+                          uint32_t method_mask, const std::string& tier_mem_mode, bool skip_compact) {
     std::array<Segment, 4> segs;
     uint32_t bases[4] = {0, 0, 0, 0};
     const char* snames[4] = {"seg0", "seg1", "seg2", "delta50k"};
+    bool load_b1 = (tier_mem_mode != "nvme" && tier_mem_mode != "dram");
+    bool eff_b4_ram = load_b4_ram || (tier_mem_mode == "dram");
+    if (tier_mem_mode == "nvme" || tier_mem_mode == "split") eff_b4_ram = false;
     uint64_t cur_b = 0;
     for (int s = 0; s < 4; ++s) {
         bases[s] = (uint32_t)cur_b;
-        if (!segs[s].load(root + "/" + snames[s], bases[s], true, load_b4_ram, s == 0)) {
+        if (!segs[s].load(root + "/" + snames[s], bases[s], load_b1, eff_b4_ram, s == 0)) {
             std::cerr << "Failed loading " << snames[s] << "\n"; std::exit(2);
         }
         cur_b += segs[s].N_docs;
@@ -694,7 +722,9 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
     std::ofstream fo(out_json);
     fo << std::fixed << std::setprecision(4)
        << "{\n  \"N_all\": " << N_all << ", \"K\": " << segs[0].K << ", \"topk\": " << topk
-       << ", \"amx\": " << (g_amx ? "true" : "false") << ", \"load_b4_ram\": " << (load_b4_ram ? "true" : "false")
+       << ", \"delta\": " << g_delta << ", \"force_path3\": " << (g_force_path3 ? "true" : "false")
+       << ", \"tier_mem_mode\": \"" << tier_mem_mode << "\""
+       << ", \"amx\": " << (g_amx ? "true" : "false") << ", \"load_b4_ram\": " << (eff_b4_ram ? "true" : "false")
        << ", \"m_norm_max\": " << max_mnorm
        << ", \"memory_mb\": {\"tier0_total\": " << (mb_cb + mb_dc + mb_roar) << ", \"tier1_b1_ram\": " << mb_b1
        << ", \"tier1_b4_nvme\": " << mb_b4 << ", \"tier2_fp16_nvme\": " << mb_t2 << "},\n  \"rows\": [\n";
@@ -724,9 +754,11 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
         for (int nT : run_ts) {
             int total_q = (nT == 1) ? ((!dump_dir.empty()) ? nq : 50) : std::max(nT * 6, 200);
             for (int m = 0; m < 8; ++m) {
-                if ((m == 1 || m == 4) && !load_b4_ram) continue;
+                if (!((method_mask >> m) & 1u)) continue;
+                if (m == 0 && !segs[0].has_b1) continue;
+                if ((m == 1 || m == 4) && !eff_b4_ram) continue;
                 if (is_lsm && m > 2) continue;
-                if (m == 7 && wl.sigma > 0.15) continue;
+                if (m == 7 && method_mask == 0xFFu && wl.sigma > 0.15) continue;
                 for (int s = 0; s < 4; ++s) { segs[s].t1_b4_nvme.flush_cold(); segs[s].t2_nvme.flush_cold(); }
 
                 std::vector<double> lats(total_q, 0.0), recs(total_q, 0.0), allk(total_q, 0.0);
@@ -741,8 +773,8 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                     init_amx_thr();
                     std::array<ThreadUringReader, 4> tr_b1, tr_b4r, tr_b4, tr_t2;
                     for (int s = 0; s < 4; ++s) {
-                        tr_b1[s].init(&segs[s].t1_b1_ram, 1, 22);
-                        if (load_b4_ram) tr_b4r[s].init(&segs[s].t1_b4_ram, 1, 70);
+                        if (segs[s].has_b1) tr_b1[s].init(&segs[s].t1_b1_ram, 1, 22);
+                        if (eff_b4_ram) tr_b4r[s].init(&segs[s].t1_b4_ram, 1, 70);
                         tr_b4[s].init(&segs[s].t1_b4_nvme, 12, 70);
                         tr_t2[s].init(&segs[s].t2_nvme, 24, 256);
                     }
@@ -840,7 +872,8 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
                                     const roaring_bitmap_t* prb = seg_rbs[s][bi];
                                     uint64_t nv = roaring_bitmap_get_cardinality(prb);
                                     if (nv == 0) { roaring_bitmap_free(cu); continue; }
-                                    if (nv <= sg.dynamic_tau1(nprobe_arg, lut.n_vq)) {
+                                    bool allow_path1 = (m != 5) && !g_force_path3;
+                                    if (allow_path1 && nv <= sg.dynamic_tau1(nprobe_arg, lut.n_vq, 3)) {
                                         std::vector<uint32_t> vs(nv); roaring_bitmap_to_uint32_array(prb, vs.data());
                                         for (uint32_t d : vs) pool.push_back({score_k0_4b(sg.doc_cids.data(), sg.doc_offs[d], sg.doc_offs[d + 1], lut.S4.data()), (uint8_t)s, d});
                                         roaring_bitmap_free(cu); continue;
@@ -1065,8 +1098,9 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
     }
 
     // Phase 6: Measure real background Segment Compaction (merging 50K Delta Buffer + CRoaring rebuild into seg2!)
-    double tc0 = monotonic_ns();
-    {
+    double compact_s = 0.0;
+    if (!skip_compact) {
+        double tc0 = monotonic_ns();
         uint64_t K = segs[0].K;
         std::vector<roaring_bitmap_t*> merged(K, nullptr);
         #pragma omp parallel for schedule(dynamic, 64)
@@ -1078,22 +1112,35 @@ static void run_bench_lsm(const std::string& root, const std::string& out_json, 
             merged[c] = r;
         }
         for (auto* r : merged) roaring_bitmap_free(r);
+        compact_s = (monotonic_ns() - tc0) * 1e-9;
+        std::cerr << "  [LSM Phase 6 Compaction] Merged 50K Delta into 2.93M Seg2 (K=65,536 CRoaring + run_optimize) in "
+                  << std::setprecision(3) << compact_s << " s!\n";
     }
-    double compact_s = (monotonic_ns() - tc0) * 1e-9;
-    std::cerr << "  [LSM Phase 6 Compaction] Merged 50K Delta into 2.93M Seg2 (K=65,536 CRoaring + run_optimize) in "
-              << std::setprecision(3) << compact_s << " s!\n";
-    fo << "\n  ],\n  \"compaction_50k_into_seg2_s\": " << compact_s << "\n}\n";
+    double pss_gb = 0, rss_gb = 0, hwm_gb = 0;
+    read_proc_self_mem_gb(pss_gb, rss_gb, hwm_gb);
+    fo << "\n  ],\n  \"compaction_50k_into_seg2_s\": " << compact_s
+       << ",\n  \"proc_mem_gb\": {\"pss_gb\": " << pss_gb << ", \"rss_gb\": " << rss_gb << ", \"vm_hwm_gb\": " << hwm_gb << "}\n}\n";
 }
 
 int main(int argc, char** argv) {
-    std::string mode, dir, out_json, dump_dir;
+    std::string mode, dir, out_json, dump_dir, tier_mem_mode = "all";
     std::vector<int> threads = {1, 8, 24, 48};
     std::vector<std::string> wl_filter;
-    int topk = 10, c1_arg = 600, nprobe_arg = 8; bool load_b4_ram = false;
+    int topk = 10, c1_arg = 600, nprobe_arg = 8; bool load_b4_ram = false, skip_compact = false;
+    uint32_t method_mask = 0xFFu;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--no-amx") g_no_amx = true;
+        else if (a == "--force-path3") g_force_path3 = true;
+        else if (a == "--skip-compact") skip_compact = true;
         else if (a == "--load-b4-ram") load_b4_ram = true;
+        else if (a == "--delta" && i + 1 < argc) g_delta = std::stod(argv[++i]);
+        else if (a == "--tier-mem-mode" && i + 1 < argc) tier_mem_mode = argv[++i];
+        else if (a == "--methods" && i + 1 < argc) {
+            method_mask = 0u;
+            std::stringstream ss(argv[++i]); std::string tok;
+            while (std::getline(ss, tok, ',')) if (!tok.empty()) method_mask |= (1u << std::stoi(tok));
+        }
         else if (a == "--topk" && i + 1 < argc) topk = std::clamp(std::stoi(argv[++i]), 1, 100);
         else if (a == "--c1" && i + 1 < argc) c1_arg = std::max(10, std::stoi(argv[++i]));
         else if (a == "--nprobe" && i + 1 < argc) nprobe_arg = std::max(1, std::stoi(argv[++i]));
@@ -1111,7 +1158,7 @@ int main(int argc, char** argv) {
     }
     init_amx_proc(); init_amx_thr();
     if (mode == "cliff") { run_cache_cliff_bench(out_json); return 0; }
-    if (mode == "lsm") { run_bench_lsm(dir, out_json, threads, topk, load_b4_ram, c1_arg, nprobe_arg, wl_filter, dump_dir); return 0; }
-    std::cerr << "Usage: " << argv[0] << " --cache-cliff <out.json> | --bench-lsm <dir> <out.json> [--load-b4-ram] [--topk 10|50|100] [--workloads a,b] [--dump-topids <dir>]\n";
+    if (mode == "lsm") { run_bench_lsm(dir, out_json, threads, topk, load_b4_ram, c1_arg, nprobe_arg, wl_filter, dump_dir, method_mask, tier_mem_mode, skip_compact); return 0; }
+    std::cerr << "Usage: " << argv[0] << " --cache-cliff <out.json> | --bench-lsm <dir> <out.json> [--load-b4-ram] [--delta 0.05] [--force-path3] [--methods 0,1,2] [--tier-mem-mode nvme|split|dram]\n";
     return 1;
 }

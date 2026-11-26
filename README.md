@@ -25,15 +25,20 @@ scripts/
   build_msmarco_lsm_index.py     # MS MARCO 8.84M 3-segment LSM + 50K Delta + exact FP32 GPU GT builder
   build_lotte200k_and_gt_upgrade.py # 1:1 lotte_200k matched index, 16-WL MS MARCO GT, and official IR anchor verifier
   ingest_external_dbs.py         # Non-root ingestion for unmodified VectorChord 1.5.0, Qdrant v1.20.2, Weaviate v1.41.0
+  ingest_qdrant_bq.py            # Non-root ingestion for unmodified Qdrant v1.20.2 Binary Quantization (BQ + On-Disk)
   bench_external_dbs.py          # 1:1 hard-exclusive benchmark harness for all external DB configurations
+  bench_qdrant_bq.py             # 1:1 hard-exclusive benchmark harness for Qdrant v1.20.2 BQ (warm + cold check)
   measure_vchord_true_pss.py     # Linux /proc/<pid>/smaps_rollup full process-group PSS profiler for PostgreSQL/VectorChord
+  measure_pm_build_and_mem.py    # Isolated Linux smaps_rollup PSS/VmHWM profiler & 1:1 index build time harness for PM-MaxSim
 results/
-  T1_e2e_48c_main.csv            # 48-core cold NVMe main results across all corpora & 8 methods (1,478 rows)
+  T1_e2e_48c_main.csv            # 48-core cold NVMe main results across all corpora & 8 methods (1,482 rows)
   T2_ablation_drilldown.csv      # AMX vs AVX-512, k=10/50/100, 6-phase LSM + Compaction, 1c/48c Cache-Cliff (104 rows)
   T3_rerank_fidelity_ir.csv      # Official 100/100 MS MARCO MRR@10 & 140/140 ViDoRe v3 nDCG@5 vs exact FP32 anchors (23 rows)
-  T4_external_dbs_1to1.csv       # Strict 1:1 external DB comparison incl. matched-recall parity & PG PSS (328 rows)
+  T4_external_dbs_1to1.csv       # Strict 1:1 external DB comparison incl. Qdrant BQ, matched-recall parity & 0-empty-cell PSS (402 rows)
   T5_pareto_curves.csv           # 48-core QPS-vs-Recall@10 Pareto sweeps across lotte_200k, LoTTE 2.82M, MS MARCO 8.84M (272 rows)
   T6_latency_breakdown_prune.csv # All-10 exactness, Wave-1/Tier-2 prune rates & 5-stage ms latency breakdown (316 rows)
+  T7_sensitivity_crossover.csv   # 3-line Tau1* crossover, delta in {0.001..0.10} sensitivity, Theorem-4B semi-poisoning & 3-rep CV (268 rows)
+  T8_build_memory_footprint.csv  # Symmetric 1:1 build time, disk size & measured Linux PSS/VmHWM across all systems (27 rows)
 ```
 
 ## Quick Start

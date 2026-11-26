@@ -1,329 +1,403 @@
-tag,system,config,workload,threads,qps,p50_ms,p99_ms,recall10,ndcg5,proc_mb_q,rss_gb
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_5.00pct_ExactNC5,1,97.4649,11.0484,13.3766,0.962,,6.4752,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_5.00pct_ExactNC5,1,129.7173,7.7137,10.5226,0.962,,1.7023,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_5.00pct_ExactNC5,1,114.52,8.8524,11.7774,0.962,,7.5438,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_5.00pct_ExactNC5,48,1165.6685,43.8516,55.0878,0.9622,,6.4715,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_5.00pct_ExactNC5,48,3536.4854,13.0435,22.4888,0.9622,,1.7016,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_5.00pct_ExactNC5,48,978.5947,48.953,62.4371,0.9622,,7.5435,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_100.00pct,1,74.6219,13.2564,17.7096,0.816,,6.9421,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_100.00pct,1,87.9376,11.5694,14.6644,0.816,,1.9738,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_100.00pct,1,85.724,11.5227,17.2182,0.816,,7.9634,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_100.00pct,48,1074.6227,43.8204,63.8901,0.8188,,6.9494,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_100.00pct,48,2764.7789,16.3676,28.1342,0.8188,,1.973,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_100.00pct,48,916.6967,52.1042,67.7348,0.8188,,7.9631,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_DocLenRange_5pct,1,79.9029,13.3026,15.0599,0.978,,8.4366,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_DocLenRange_5pct,1,111.0263,8.8276,11.5877,0.978,,2.2766,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_DocLenRange_5pct,1,98.5659,10.0625,13.2394,0.978,,9.1927,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_DocLenRange_5pct,48,919.9351,54.2568,69.7182,0.9789,,8.4432,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_DocLenRange_5pct,48,2883.0123,15.727,27.3211,0.9789,,2.2804,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_DocLenRange_5pct,48,832.9681,58.281,72.8244,0.9789,,9.1965,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_Dom0_Filter,1,92.1987,10.7954,13.7292,0.97,,7.948,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_Dom0_Filter,1,146.3479,6.7074,8.8561,0.97,,1.8262,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_Dom0_Filter,1,120.4012,8.1161,10.3672,0.97,,7.8195,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_Dom0_Filter,48,948.6184,50.998,60.8111,0.9703,,7.9367,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_Dom0_Filter,48,3486.3137,12.8165,21.9716,0.9703,,1.8215,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_Dom0_Filter,48,938.4033,50.9346,64.2545,0.9703,,7.8145,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_Dom1_Filter,1,86.5227,11.7056,15.0472,0.866,,7.0917,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_Dom1_Filter,1,110.8566,9.1673,12.0569,0.866,,1.9923,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_Dom1_Filter,1,101.6458,9.8342,12.7457,0.866,,7.8718,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_Dom1_Filter,48,1086.4724,45.4837,58.7635,0.8661,,7.0945,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_Dom1_Filter,48,3028.5793,15.2137,25.3743,0.8661,,1.9922,
-lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_Dom1_Filter,48,943.5684,50.7253,65.2357,0.8661,,7.8704,
-vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_100.00pct,1,78.309,13.3226,17.285,0.9971,0.4582,10.6689,
-vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_100.00pct,1,109.6447,8.8567,13.0645,0.9971,0.4582,2.4195,
-vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_100.00pct,1,99.1532,9.8551,16.3183,0.9971,0.4582,11.6383,
-vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_100.00pct,48,874.1054,55.525,85.5536,0.9971,0.4582,10.6476,
-vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_100.00pct,48,3054.0058,14.1505,25.2233,0.9971,0.4582,2.4142,
-vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_100.00pct,48,801.5066,57.609,82.0509,0.9971,0.4582,11.6329,
-vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_DomainEq,1,83.0724,12.7898,17.957,1.0,,10.6073,
-vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_DomainEq,1,125.9461,7.8738,10.17,1.0,,2.3704,
-vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_DomainEq,1,108.0495,9.1573,11.4079,1.0,,11.5891,
-vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_DomainEq,48,907.6823,54.1922,75.8567,1.0,,10.5954,
-vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_DomainEq,48,2708.8826,14.7566,33.8939,1.0,,2.373,
-vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_DomainEq,48,805.5378,56.931,83.5764,1.0,,11.5917,
-vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_CrossDomainNeg,1,61.8611,16.2482,20.5841,0.9386,,16.6756,
-vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_CrossDomainNeg,1,85.0471,11.9972,17.4508,0.9386,,6.6113,
-vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_CrossDomainNeg,1,76.4926,13.1197,18.2572,0.9386,,15.83,
-vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_CrossDomainNeg,48,591.4582,80.7796,100.5285,0.9367,,16.6773,
-vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_CrossDomainNeg,48,1380.4133,33.4676,56.104,0.9367,,6.5959,
-vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_CrossDomainNeg,48,603.5128,79.1082,107.3528,0.9367,,15.8146,
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_100.00pct,1,6.95,145.12,202.24,0.6767,0.4894,8.248,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_100.00pct,48,133.67,291.67,489.68,0.6722,0.4295,1.085,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_DomainEq,1,6.01,148.39,383.34,0.7833,,5.765,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_DomainEq,48,116.19,285.44,452.64,0.7937,,0.002,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_CrossDomainNeg,1,6.09,142.02,289.29,0.5567,,0.788,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_CrossDomainNeg,48,137.35,259.67,448.73,0.5493,,0.337,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_100.00pct,1,2.05,507.0,714.41,0.77,0.4796,0.283,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_100.00pct,48,32.66,1311.42,1711.5,0.7597,0.4339,0.124,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_DomainEq,1,2.74,408.49,626.75,0.85,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_DomainEq,48,50.23,898.03,1565.4,0.8535,,0.002,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_CrossDomainNeg,1,2.75,426.48,597.67,0.6333,,0.271,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_CrossDomainNeg,48,45.79,829.01,1544.78,0.6201,,0.186,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,1,2.06,511.12,615.58,0.77,0.4796,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,8,12.52,587.56,769.83,0.7517,0.4403,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,24,23.68,803.98,1183.38,0.7556,0.4198,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,48,32.34,1304.24,1794.17,0.7597,0.4339,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DomainEq,1,2.72,410.83,633.65,0.85,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DomainEq,8,16.6,487.34,695.61,0.8367,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DomainEq,24,29.05,600.37,1070.12,0.8403,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DomainEq,48,48.7,891.21,1597.14,0.8535,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_CrossDomainNeg,1,2.76,426.12,597.45,0.6333,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_CrossDomainNeg,8,12.91,501.57,890.07,0.6267,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_CrossDomainNeg,24,31.08,591.41,1036.51,0.6264,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_CrossDomainNeg,48,48.03,823.75,1616.52,0.6201,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_100.00pct,1,0.51,2060.82,2442.81,0.755,0.5263,0.119,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_100.00pct,48,7.43,5769.55,7588.59,0.7694,0.4523,0.04,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_DomainEq,1,0.8,1990.15,2126.84,0.84,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_DomainEq,48,12.9,4132.1,6700.31,0.8569,,0.0,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_CrossDomainNeg,1,0.88,1602.57,2405.43,0.665,,0.271,5.215
-vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_CrossDomainNeg,48,12.56,3836.76,7039.95,0.6632,,0.172,5.215
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_100.00pct,1,1.8,556.33,792.28,0.7933,0.4793,9.879,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_100.00pct,48,28.79,1385.11,2249.32,0.7507,0.4572,1.791,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_DomainEq,1,2.45,430.76,785.39,0.8767,,11.522,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_DomainEq,48,45.7,871.99,2029.33,0.8493,,0.007,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_CrossDomainNeg,1,2.48,464.1,694.76,0.6167,,1.295,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_CrossDomainNeg,48,45.91,917.82,1881.3,0.6215,,0.686,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,1,1.86,544.62,761.51,0.7933,0.4793,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,8,11.43,616.65,885.14,0.7583,0.4419,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,24,23.31,876.54,1270.44,0.7597,0.4298,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,48,29.02,1396.95,2275.86,0.7507,0.4572,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DomainEq,1,2.51,434.01,761.65,0.8767,,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DomainEq,8,10.77,504.92,1266.53,0.8433,,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DomainEq,24,28.68,618.49,1249.56,0.8444,,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DomainEq,48,44.66,874.7,1875.11,0.8493,,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_CrossDomainNeg,1,2.5,456.61,691.29,0.6167,,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_CrossDomainNeg,8,15.08,533.37,908.34,0.6367,,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_CrossDomainNeg,24,34.16,674.6,1114.39,0.6361,,0.0,
-vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_CrossDomainNeg,48,43.64,869.7,1970.9,0.6215,,0.0,
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_100.00pct,1,6.1,168.44,225.34,0.9925,0.5068,20.156,1.429
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_100.00pct,48,80.93,309.67,602.15,0.9901,0.4661,2.068,1.81
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_DomainEq,1,23.27,30.88,120.35,0.9925,,0.03,1.81
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_DomainEq,48,134.28,47.72,250.29,0.9896,,0.011,1.827
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_CrossDomainNeg,1,20.96,35.5,123.23,0.8825,,0.756,1.859
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_CrossDomainNeg,48,150.89,47.89,227.01,0.9031,,0.274,1.92
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,1,6.06,168.36,270.9,0.995,0.5068,0.165,1.92
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,8,41.68,174.29,257.15,0.995,0.4578,0.061,1.895
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,24,66.67,246.33,356.36,0.9938,0.4625,0.026,1.912
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,48,74.94,367.96,709.3,0.9938,0.4661,0.04,1.939
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DomainEq,1,21.31,38.23,122.17,0.995,,0.0,1.939
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DomainEq,8,121.53,38.4,128.81,0.9938,,0.0,1.894
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DomainEq,24,126.78,44.45,257.06,0.9927,,0.0,1.903
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DomainEq,48,134.13,58.04,213.66,0.9938,,0.001,1.921
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_CrossDomainNeg,1,19.76,40.92,119.94,0.955,,0.057,1.925
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_CrossDomainNeg,8,114.49,38.78,162.44,0.955,,0.038,1.93
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_CrossDomainNeg,24,116.46,53.84,192.19,0.9531,,0.011,1.933
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_CrossDomainNeg,48,134.76,56.34,189.78,0.9594,,0.008,1.94
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_100.00pct,1,6.0,169.04,269.23,0.995,0.5068,0.038,1.94
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_100.00pct,48,61.45,501.46,792.41,0.9938,0.4661,0.037,1.936
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_DomainEq,1,18.28,43.65,122.79,0.995,,0.0,1.936
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_DomainEq,48,140.57,65.24,210.2,0.9943,,0.0,1.917
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_CrossDomainNeg,1,16.9,45.32,187.57,0.97,,0.024,1.92
-vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_CrossDomainNeg,48,140.73,76.43,228.75,0.9771,,0.002,1.936
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,1,50.08,7.2,19.42,0.7875,0.4668,25.216,0.972
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,8,100.47,24.22,54.48,0.7663,0.4151,3.893,1.341
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,24,102.38,53.5,125.55,0.7833,0.4174,0.666,1.467
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,48,154.74,90.5,267.7,0.7875,0.421,0.854,1.504
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DomainEq,1,51.69,5.7,9.1,0.4675,,0.018,1.283
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DomainEq,8,119.0,7.69,22.82,0.445,,0.007,1.137
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DomainEq,24,109.26,14.35,80.01,0.4656,,0.002,1.176
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DomainEq,48,150.61,15.18,99.8,0.4646,,0.952,1.89
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_CrossDomainNeg,1,54.66,5.51,18.93,0.1425,,0.074,1.89
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_CrossDomainNeg,8,120.82,7.09,27.49,0.1363,,0.058,0.861
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_CrossDomainNeg,24,111.49,18.55,169.42,0.1406,,0.01,0.902
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_CrossDomainNeg,48,130.22,21.94,196.86,0.1427,,0.188,1.436
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_100.00pct,1,39.2,11.73,27.33,0.845,0.4864,0.926,2.112
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_100.00pct,48,114.85,181.63,430.5,0.8531,0.4388,0.0,2.148
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_DomainEq,1,52.63,6.62,8.96,0.4675,,0.0,2.105
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_DomainEq,48,130.55,27.13,194.56,0.4646,,0.0,1.992
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_CrossDomainNeg,1,49.47,6.94,10.9,0.1425,,0.0,1.997
-vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_CrossDomainNeg,48,139.14,19.98,124.93,0.1427,,0.0,2.006
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,1,44.2,10.05,18.41,0.7925,0.471,0.0,2.473
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,8,92.52,25.19,65.76,0.775,0.4169,0.055,2.68
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,24,102.37,39.42,161.07,0.7896,0.4117,0.0,2.653
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,48,142.07,61.36,251.84,0.7911,0.4191,0.0,2.721
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_DomainEq,1,41.77,9.13,14.63,0.4675,,0.0,2.7
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_DomainEq,8,104.24,13.95,42.56,0.4462,,0.0,2.477
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_DomainEq,24,97.99,19.43,97.24,0.4677,,0.0,2.452
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_DomainEq,48,127.13,20.75,117.0,0.4667,,0.0,2.477
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_CrossDomainNeg,1,45.74,8.39,21.79,0.14,,0.0,2.477
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_CrossDomainNeg,8,113.5,9.51,27.75,0.1363,,0.0,2.477
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_CrossDomainNeg,24,91.33,20.34,117.31,0.1406,,0.0,2.479
-vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_CrossDomainNeg,48,142.37,23.81,120.23,0.1422,,0.0,2.482
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_100.00pct,1,3.09,340.36,497.6,0.3967,,23.774,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_100.00pct,48,67.75,555.6,900.95,0.4097,,1.065,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_5.00pct_ExactNC5,1,3.62,256.52,453.75,0.45,,1.311,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_5.00pct_ExactNC5,48,66.61,549.78,900.27,0.4417,,0.121,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_DocLenRange_5pct,1,3.71,266.65,401.08,0.4933,,1.521,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_DocLenRange_5pct,48,75.07,531.94,910.07,0.4639,,0.193,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_Dom0_Filter,1,5.86,155.14,605.96,1.0,,5.766,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_Dom0_Filter,48,153.92,230.5,331.84,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_Dom1_Filter,1,3.83,257.55,389.28,0.38,,0.482,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_Dom1_Filter,48,75.29,536.25,859.45,0.3958,,0.074,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_100.00pct,1,0.94,989.75,1376.05,0.5233,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_100.00pct,48,16.05,2521.78,3903.07,0.5264,,0.338,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_5.00pct_ExactNC5,1,0.95,996.88,1374.97,0.5467,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_5.00pct_ExactNC5,48,16.06,2546.05,3908.22,0.5319,,0.051,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_DocLenRange_5pct,1,0.95,999.57,1398.79,0.5667,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_DocLenRange_5pct,48,15.98,2563.09,3901.67,0.5444,,0.068,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_Dom0_Filter,1,6.41,154.96,169.89,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_Dom0_Filter,48,170.61,231.26,296.77,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_Dom1_Filter,1,0.95,995.18,1409.96,0.4333,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_Dom1_Filter,48,16.71,2537.77,3812.07,0.4562,,0.04,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,1,0.95,984.68,1386.83,0.5233,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,8,6.03,1154.99,1600.55,0.51,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,24,13.68,1566.14,2369.0,0.5208,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,48,16.67,2544.25,3852.25,0.5264,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,1,0.95,985.12,1388.68,0.5467,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,8,5.93,1145.59,1650.02,0.525,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,24,12.62,1568.73,2519.69,0.5389,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,48,16.18,2535.96,3892.54,0.5319,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DocLenRange_5pct,1,0.95,997.96,1391.33,0.5667,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DocLenRange_5pct,8,5.33,1192.14,2099.68,0.5533,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DocLenRange_5pct,24,12.19,1604.71,2482.28,0.5597,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DocLenRange_5pct,48,16.15,2609.95,3919.2,0.5444,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom0_Filter,1,6.41,154.92,169.7,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom0_Filter,8,27.68,156.11,274.64,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom0_Filter,24,85.71,173.04,278.21,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom0_Filter,48,168.95,230.65,277.84,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom1_Filter,1,0.95,989.95,1406.5,0.4333,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom1_Filter,8,4.78,1194.39,1991.34,0.445,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom1_Filter,24,12.75,1617.35,2338.46,0.4583,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom1_Filter,48,16.35,2548.07,3889.59,0.4562,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_100.00pct,1,0.23,4477.6,5565.69,0.63,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_100.00pct,48,3.52,12320.49,16348.0,0.6292,,0.112,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_5.00pct_ExactNC5,1,0.23,4359.64,5335.25,0.67,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_5.00pct_ExactNC5,48,3.57,12271.44,16603.97,0.6326,,0.045,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_DocLenRange_5pct,1,0.23,4462.54,5543.12,0.71,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_DocLenRange_5pct,48,3.54,12261.07,16676.22,0.6639,,0.083,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_Dom0_Filter,1,6.38,155.13,170.82,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_Dom0_Filter,48,179.92,233.05,250.48,1.0,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_Dom1_Filter,1,0.23,4469.56,5561.62,0.605,,0.0,10.588
-lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_Dom1_Filter,48,3.6,12245.62,16434.39,0.5833,,0.046,10.588
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_100.00pct,1,0.93,1049.37,1608.68,0.4167,,0.03,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_100.00pct,48,16.98,2439.62,3796.85,0.4,,0.521,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_5.00pct_ExactNC5,1,0.97,1008.88,1522.37,0.4733,,1.757,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_5.00pct_ExactNC5,48,16.2,2440.54,3886.44,0.4514,,0.174,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_DocLenRange_5pct,1,0.98,1021.12,1534.29,0.5,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_DocLenRange_5pct,48,16.59,2437.16,3858.97,0.4694,,0.194,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_Dom0_Filter,1,2.47,387.82,853.02,0.9967,,7.706,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_Dom0_Filter,48,66.57,532.19,688.29,0.9979,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_Dom1_Filter,1,0.98,1002.8,1556.66,0.4133,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_Dom1_Filter,48,16.89,2407.22,4124.2,0.3847,,0.124,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,1,0.98,1020.57,1541.67,0.4167,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,8,4.85,1105.43,1792.16,0.4,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,24,13.15,1508.07,2595.5,0.4097,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,48,17.27,2437.2,3771.5,0.4,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,1,0.99,998.84,1542.04,0.4733,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,8,5.11,1116.81,1922.86,0.4583,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,24,12.34,1524.7,2626.34,0.4611,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,48,17.16,2407.5,3753.83,0.4514,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DocLenRange_5pct,1,0.99,1003.36,1521.9,0.5,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DocLenRange_5pct,8,5.08,1164.25,1918.22,0.485,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DocLenRange_5pct,24,12.33,1545.91,2515.63,0.4847,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DocLenRange_5pct,48,16.76,2439.2,3795.0,0.4694,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom0_Filter,1,2.56,389.33,420.94,0.9967,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom0_Filter,8,12.59,390.24,688.32,0.9983,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom0_Filter,24,34.86,436.78,688.77,0.9972,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom0_Filter,48,68.75,536.29,681.28,0.9979,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom1_Filter,1,0.98,1017.41,1540.36,0.4133,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom1_Filter,8,5.13,1149.67,1900.6,0.395,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom1_Filter,24,12.52,1493.75,2878.09,0.4042,,0.0,7.218
-lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom1_Filter,48,16.77,2402.67,3778.68,0.3847,,0.0,7.218
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_100.00pct,1,0.57,1708.92,2851.38,0.9725,,253.935,10.571
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_100.00pct,48,6.13,6942.72,9222.44,0.974,,0.439,10.676
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_5.00pct_ExactNC5,1,10.43,93.78,98.95,0.9975,,3.281,10.753
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_5.00pct_ExactNC5,48,85.09,291.62,481.4,0.9979,,0.059,10.842
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_DocLenRange_5pct,1,8.41,118.06,124.72,0.9975,,3.091,10.945
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_DocLenRange_5pct,48,67.51,393.31,778.34,0.9979,,0.06,10.968
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_Dom0_Filter,1,28.57,34.57,41.64,1.0,,0.59,10.988
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_Dom0_Filter,48,169.46,49.52,104.0,1.0,,0.01,10.988
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_Dom1_Filter,1,3.35,298.37,305.03,0.955,,0.483,10.963
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_Dom1_Filter,48,26.72,1313.94,2176.67,0.949,,0.029,10.96
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,1,0.58,1726.31,1761.95,0.99,,0.371,10.96
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,8,3.83,2045.86,2548.79,0.9875,,0.052,10.964
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,24,5.67,3895.38,5151.66,0.9875,,0.0,10.964
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,48,6.01,7221.14,9680.89,0.9885,,0.0,10.955
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_5.00pct_ExactNC5,1,10.81,91.56,98.57,1.0,,0.017,10.931
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_5.00pct_ExactNC5,8,67.06,105.8,124.05,1.0,,0.006,10.959
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_5.00pct_ExactNC5,24,85.52,157.61,271.58,1.0,,0.0,10.996
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_5.00pct_ExactNC5,48,91.24,261.46,472.3,1.0,,0.0,11.014
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DocLenRange_5pct,1,8.52,116.23,124.01,1.0,,0.0,11.014
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DocLenRange_5pct,8,54.56,139.63,160.01,1.0,,0.0,11.006
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DocLenRange_5pct,24,68.28,225.73,351.08,1.0,,0.0,11.012
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DocLenRange_5pct,48,66.39,427.12,685.14,1.0,,0.0,11.012
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom0_Filter,1,28.38,33.39,82.73,1.0,,0.004,11.004
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom0_Filter,8,154.31,42.6,80.66,1.0,,0.0,11.005
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom0_Filter,24,146.26,43.79,162.87,1.0,,0.0,11.005
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom0_Filter,48,145.77,54.04,150.19,1.0,,0.0,11.002
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom1_Filter,1,3.37,296.55,302.99,0.98,,0.113,11.002
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom1_Filter,8,19.23,399.66,475.02,0.9725,,0.022,10.981
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom1_Filter,24,22.99,919.43,1300.41,0.9719,,0.0,10.996
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom1_Filter,48,23.11,1501.74,2843.84,0.9729,,0.0,10.996
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_100.00pct,1,0.58,1707.7,1792.01,0.995,,0.191,10.982
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_100.00pct,48,5.88,7278.13,9964.56,0.9943,,0.01,10.928
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_5.00pct_ExactNC5,1,10.8,91.78,97.77,1.0,,0.004,10.939
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_5.00pct_ExactNC5,48,82.89,250.03,537.48,1.0,,0.0,11.006
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_DocLenRange_5pct,1,8.51,116.92,121.69,1.0,,0.0,11.006
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_DocLenRange_5pct,48,69.93,408.93,742.21,1.0,,0.0,11.019
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_Dom0_Filter,1,28.86,33.88,39.83,1.0,,0.0,11.02
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_Dom0_Filter,48,153.38,48.72,199.73,1.0,,0.0,11.02
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_Dom1_Filter,1,3.37,296.9,301.15,0.9875,,0.03,11.006
-lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_Dom1_Filter,48,21.94,1688.26,2934.26,0.9865,,0.001,10.991
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,1,39.47,9.54,60.71,0.315,,35.88,2.454
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,8,126.26,7.04,22.82,0.2987,,2.219,2.554
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,24,136.01,12.27,37.47,0.2885,,0.0,2.601
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,48,109.71,11.42,40.38,0.2906,,2.008,3.572
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_5.00pct_ExactNC5,1,43.9,10.3,12.3,0.195,,1.598,3.572
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_5.00pct_ExactNC5,8,109.6,8.15,98.01,0.1875,,0.178,2.234
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_5.00pct_ExactNC5,24,121.72,12.59,70.07,0.1844,,0.0,2.234
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_5.00pct_ExactNC5,48,99.07,19.36,128.35,0.188,,4.607,3.988
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DocLenRange_5pct,1,42.48,10.95,17.72,0.3075,,2.822,3.988
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DocLenRange_5pct,8,127.95,6.69,16.14,0.3025,,0.294,2.199
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DocLenRange_5pct,24,113.34,12.32,51.0,0.3031,,0.0,2.199
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DocLenRange_5pct,48,176.7,15.41,93.91,0.3042,,0.0,2.2
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom0_Filter,1,57.19,4.19,7.71,0.3075,,1.611,2.23
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom0_Filter,8,124.04,7.12,38.35,0.3088,,0.133,2.235
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom0_Filter,24,120.03,10.89,79.55,0.3021,,0.0,2.235
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom0_Filter,48,162.1,14.01,111.52,0.3021,,0.0,2.235
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom1_Filter,1,46.31,9.16,14.22,0.3075,,7.393,2.365
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom1_Filter,8,124.23,6.46,16.92,0.2975,,0.546,2.385
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom1_Filter,24,118.42,14.27,76.56,0.2917,,0.0,2.386
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom1_Filter,48,154.99,25.19,128.81,0.2938,,0.0,2.386
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_100.00pct,1,35.52,15.72,24.52,0.3775,,7.393,2.703
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_100.00pct,48,159.49,21.32,75.86,0.3573,,0.288,2.753
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_5.00pct_ExactNC5,1,45.64,9.42,16.78,0.195,,0.0,2.76
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_5.00pct_ExactNC5,48,137.2,27.11,188.31,0.188,,0.0,2.761
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_DocLenRange_5pct,1,40.22,10.45,42.67,0.3075,,0.0,2.761
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_DocLenRange_5pct,48,135.05,22.81,130.5,0.3042,,0.0,2.761
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_Dom0_Filter,1,53.71,5.33,10.81,0.3075,,0.0,2.761
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_Dom0_Filter,48,134.21,20.22,178.0,0.3021,,0.0,2.761
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_Dom1_Filter,1,36.47,13.58,26.72,0.39,,4.098,2.842
-lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_Dom1_Filter,48,151.51,22.11,139.73,0.3661,,0.223,2.876
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,1,34.82,13.84,27.8,0.3075,,0.0,15.923
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,8,112.52,11.89,27.89,0.295,,0.0,16.236
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,24,111.61,23.99,87.46,0.2833,,0.0,16.244
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,48,149.53,22.14,159.03,0.288,,0.0,16.881
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_5.00pct_ExactNC5,1,33.68,14.72,47.78,0.195,,0.0,16.884
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_5.00pct_ExactNC5,8,106.37,13.16,26.14,0.1875,,0.0,16.99
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_5.00pct_ExactNC5,24,103.73,24.05,124.33,0.1844,,0.0,17.024
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_5.00pct_ExactNC5,48,137.04,24.88,104.53,0.188,,0.0,16.427
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_DocLenRange_5pct,1,33.79,15.02,101.6,0.305,,0.003,16.707
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_DocLenRange_5pct,8,107.52,13.92,35.56,0.3,,0.0,17.185
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_DocLenRange_5pct,24,91.0,17.98,88.98,0.301,,0.0,17.185
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_DocLenRange_5pct,48,138.44,32.05,171.54,0.3021,,0.0,15.494
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom0_Filter,1,48.17,6.53,16.21,0.3125,,0.0,15.494
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom0_Filter,8,116.74,11.16,28.69,0.3138,,0.0,15.494
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom0_Filter,24,96.84,15.77,97.31,0.3063,,0.0,15.494
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom0_Filter,48,139.99,19.57,133.07,0.3063,,0.0,15.494
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom1_Filter,1,34.03,15.21,33.78,0.3225,,0.0,15.494
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom1_Filter,8,109.47,11.62,37.66,0.3113,,0.0,15.496
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom1_Filter,24,103.87,22.37,100.22,0.301,,0.0,15.497
-lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom1_Filter,48,142.8,22.86,98.3,0.3021,,0.0,15.506
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3_np32_C4000,NoCorr_5.00pct_ExactNC5,48,422.277,118.3871,176.8996,1.0,,17.6472,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3_np32_C4000,NoCorr_5.00pct_ExactNC5,48,1129.0376,39.6201,54.4856,1.0,,1.7622,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3_np32_C4000,NoCorr_100.00pct,48,367.3079,126.369,200.2196,0.9417,,20.1403,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3_np32_C4000,NoCorr_100.00pct,48,819.0695,54.7938,94.1932,0.9417,,2.2013,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3_np32_C4000,Nat_DocLenRange_5pct,48,303.457,163.3148,251.4032,1.0,,25.201,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3_np32_C4000,Nat_DocLenRange_5pct,48,881.6187,51.3566,67.5459,1.0,,2.3646,
-lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3_np32_C4000,Nat_Dom1_Filter,48,342.2883,138.8711,208.9672,0.9719,,21.9047,
-lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3_np32_C4000,Nat_Dom1_Filter,48,976.6937,46.1208,64.4012,0.9719,,2.1837,
+tag,system,config,workload,threads,qps,p50_ms,p99_ms,recall10,all10,ndcg5,proc_mb_q,rss_gb
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_5.00pct_ExactNC5,1,97.4649,11.0484,13.3766,0.962,,,6.4752,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_5.00pct_ExactNC5,1,129.7173,7.7137,10.5226,0.962,,,1.7023,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_5.00pct_ExactNC5,1,114.52,8.8524,11.7774,0.962,,,7.5438,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_5.00pct_ExactNC5,48,1165.6685,43.8516,55.0878,0.9622,0.7422,,6.4715,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_5.00pct_ExactNC5,48,3536.4854,13.0435,22.4888,0.9622,0.7422,,1.7016,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_5.00pct_ExactNC5,48,978.5947,48.953,62.4371,0.9622,0.7422,,7.5435,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_100.00pct,1,74.6219,13.2564,17.7096,0.816,,,6.9421,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_100.00pct,1,87.9376,11.5694,14.6644,0.816,,,1.9738,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_100.00pct,1,85.724,11.5227,17.2182,0.816,,,7.9634,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_100.00pct,48,1074.6227,43.8204,63.8901,0.8188,0.4193,,6.9494,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_100.00pct,48,2764.7789,16.3676,28.1342,0.8188,0.4193,,1.973,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_100.00pct,48,916.6967,52.1042,67.7348,0.8188,0.4193,,7.9631,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_DocLenRange_5pct,1,79.9029,13.3026,15.0599,0.978,,,8.4366,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_DocLenRange_5pct,1,111.0263,8.8276,11.5877,0.978,,,2.2766,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_DocLenRange_5pct,1,98.5659,10.0625,13.2394,0.978,,,9.1927,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_DocLenRange_5pct,48,919.9351,54.2568,69.7182,0.9789,0.8646,,8.4432,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_DocLenRange_5pct,48,2883.0123,15.727,27.3211,0.9789,0.8646,,2.2804,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_DocLenRange_5pct,48,832.9681,58.281,72.8244,0.9789,0.8646,,9.1965,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_Dom0_Filter,1,92.1987,10.7954,13.7292,0.97,,,7.948,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_Dom0_Filter,1,146.3479,6.7074,8.8561,0.97,,,1.8262,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_Dom0_Filter,1,120.4012,8.1161,10.3672,0.97,,,7.8195,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_Dom0_Filter,48,948.6184,50.998,60.8111,0.9703,,,7.9367,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_Dom0_Filter,48,3486.3137,12.8165,21.9716,0.9703,,,1.8215,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_Dom0_Filter,48,938.4033,50.9346,64.2545,0.9703,,,7.8145,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_Dom1_Filter,1,86.5227,11.7056,15.0472,0.866,,,7.0917,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_Dom1_Filter,1,110.8566,9.1673,12.0569,0.866,,,1.9923,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_Dom1_Filter,1,101.6458,9.8342,12.7457,0.866,,,7.8718,0.269
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_Dom1_Filter,48,1086.4724,45.4837,58.7635,0.8661,0.5182,,7.0945,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_Dom1_Filter,48,3028.5793,15.2137,25.3743,0.8661,0.5182,,1.9922,2.129
+lotte_200k,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_Dom1_Filter,48,943.5684,50.7253,65.2357,0.8661,0.5182,,7.8704,0.269
+vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_100.00pct,1,78.309,13.3226,17.285,0.9971,0.9786,0.4582,10.6689,0.228
+vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_100.00pct,1,109.6447,8.8567,13.0645,0.9971,0.9786,0.4582,2.4195,0.408
+vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_100.00pct,1,99.1532,9.8551,16.3183,0.9971,0.9786,0.4582,11.6383,0.15
+vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,NoCorr_100.00pct,48,874.1054,55.525,85.5536,0.9971,0.9792,0.4582,10.6476,0.228
+vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,NoCorr_100.00pct,48,3054.0058,14.1505,25.2233,0.9971,0.9792,0.4582,2.4142,0.408
+vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,NoCorr_100.00pct,48,801.5066,57.609,82.0509,0.9971,0.9792,0.4582,11.6329,0.15
+vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_DomainEq,1,83.0724,12.7898,17.957,1.0,1.0,,10.6073,0.228
+vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_DomainEq,1,125.9461,7.8738,10.17,1.0,1.0,,2.3704,0.408
+vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_DomainEq,1,108.0495,9.1573,11.4079,1.0,1.0,,11.5891,0.15
+vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_DomainEq,48,907.6823,54.1922,75.8567,1.0,1.0,,10.5954,0.228
+vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_DomainEq,48,2708.8826,14.7566,33.8939,1.0,1.0,,2.373,0.408
+vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_DomainEq,48,805.5378,56.931,83.5764,1.0,1.0,,11.5917,0.15
+vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_CrossDomainNeg,1,61.8611,16.2482,20.5841,0.9386,0.6643,,16.6756,0.228
+vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_CrossDomainNeg,1,85.0471,11.9972,17.4508,0.9386,0.6643,,6.6113,0.408
+vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_CrossDomainNeg,1,76.4926,13.1197,18.2572,0.9386,0.6643,,15.83,0.15
+vidore_v3_am,PM-MaxSim (Split_B1_B4_T3),exact_T3,Nat_CrossDomainNeg,48,591.4582,80.7796,100.5285,0.9367,0.6562,,16.6773,0.228
+vidore_v3_am,PM-MaxSim (PM_DRAM_T1),exact_T3,Nat_CrossDomainNeg,48,1380.4133,33.4676,56.104,0.9367,0.6562,,6.5959,0.408
+vidore_v3_am,PM-MaxSim (PM_NVME_T1),exact_T3,Nat_CrossDomainNeg,48,603.5128,79.1082,107.3528,0.9367,0.6562,,15.8146,0.15
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_100.00pct,1,6.95,145.12,202.24,0.6767,0.0,0.4894,8.248,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_100.00pct,48,133.67,291.67,489.68,0.6722,0.0278,0.4295,1.085,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_DomainEq,1,6.01,148.39,383.34,0.7833,0.4333,,5.765,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_DomainEq,48,116.19,285.44,452.64,0.7937,0.4375,,0.002,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_CrossDomainNeg,1,6.09,142.02,289.29,0.5567,0.4333,,0.788,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_CrossDomainNeg,48,137.35,259.67,448.73,0.5493,0.4236,,0.337,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_100.00pct,1,2.05,507.0,714.41,0.77,0.0,0.4796,0.283,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_100.00pct,48,32.66,1311.42,1711.5,0.7597,0.0486,0.4339,0.124,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_DomainEq,1,2.74,408.49,626.75,0.85,0.4333,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_DomainEq,48,50.23,898.03,1565.4,0.8535,0.4375,,0.002,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_CrossDomainNeg,1,2.75,426.48,597.67,0.6333,0.4333,,0.271,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_CrossDomainNeg,48,45.79,829.01,1544.78,0.6201,0.4236,,0.186,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,1,2.06,511.12,615.58,0.77,0.0,0.4796,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,8,12.52,587.56,769.83,0.7517,0.0,0.4403,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,24,23.68,803.98,1183.38,0.7556,0.0139,0.4198,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,48,32.34,1304.24,1794.17,0.7597,0.0486,0.4339,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DomainEq,1,2.72,410.83,633.65,0.85,0.4333,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DomainEq,8,16.6,487.34,695.61,0.8367,0.4167,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DomainEq,24,29.05,600.37,1070.12,0.8403,0.4306,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DomainEq,48,48.7,891.21,1597.14,0.8535,0.4375,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_CrossDomainNeg,1,2.76,426.12,597.45,0.6333,0.4333,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_CrossDomainNeg,8,12.91,501.57,890.07,0.6267,0.4167,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_CrossDomainNeg,24,31.08,591.41,1036.51,0.6264,0.4167,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_CrossDomainNeg,48,48.03,823.75,1616.52,0.6201,0.4236,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_100.00pct,1,0.51,2060.82,2442.81,0.755,0.0,0.5263,0.119,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_100.00pct,48,7.43,5769.55,7588.59,0.7694,0.0486,0.4523,0.04,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_DomainEq,1,0.8,1990.15,2126.84,0.84,0.4,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_DomainEq,48,12.9,4132.1,6700.31,0.8569,0.4375,,0.0,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_CrossDomainNeg,1,0.88,1602.57,2405.43,0.665,0.45,,0.271,5.22
+vidore_v3_am,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_CrossDomainNeg,48,12.56,3836.76,7039.95,0.6632,0.4236,,0.172,5.22
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_100.00pct,1,1.8,556.33,792.28,0.7933,0.0667,0.4793,9.879,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_100.00pct,48,28.79,1385.11,2249.32,0.7507,0.0278,0.4572,1.791,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_DomainEq,1,2.45,430.76,785.39,0.8767,0.4333,,11.522,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_DomainEq,48,45.7,871.99,2029.33,0.8493,0.4375,,0.007,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_CrossDomainNeg,1,2.48,464.1,694.76,0.6167,0.4333,,1.295,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_CrossDomainNeg,48,45.91,917.82,1881.3,0.6215,0.4236,,0.686,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,1,1.86,544.62,761.51,0.7933,0.0667,0.4793,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,8,11.43,616.65,885.14,0.7583,0.0333,0.4419,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,24,23.31,876.54,1270.44,0.7597,0.0278,0.4298,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,48,29.02,1396.95,2275.86,0.7507,0.0278,0.4572,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DomainEq,1,2.51,434.01,761.65,0.8767,0.4333,,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DomainEq,8,10.77,504.92,1266.53,0.8433,0.4167,,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DomainEq,24,28.68,618.49,1249.56,0.8444,0.4306,,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DomainEq,48,44.66,874.7,1875.11,0.8493,0.4375,,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_CrossDomainNeg,1,2.5,456.61,691.29,0.6167,0.4333,,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_CrossDomainNeg,8,15.08,533.37,908.34,0.6367,0.4167,,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_CrossDomainNeg,24,34.16,674.6,1114.39,0.6361,0.4167,,0.0,5.41
+vidore_v3_am,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_CrossDomainNeg,48,43.64,869.7,1970.9,0.6215,0.4236,,0.0,5.41
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_100.00pct,1,6.1,168.44,225.34,0.9925,0.925,0.5068,20.156,1.429
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_100.00pct,48,80.93,309.67,602.15,0.9901,0.9062,0.4661,2.068,1.81
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_DomainEq,1,23.27,30.88,120.35,0.9925,0.925,,0.03,1.81
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_DomainEq,48,134.28,47.72,250.29,0.9896,0.901,,0.011,1.827
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_CrossDomainNeg,1,20.96,35.5,123.23,0.8825,0.4,,0.756,1.859
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_CrossDomainNeg,48,150.89,47.89,227.01,0.9031,0.5,,0.274,1.92
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,1,6.06,168.36,270.9,0.995,0.95,0.5068,0.165,1.92
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,8,41.68,174.29,257.15,0.995,0.95,0.4578,0.061,1.895
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,24,66.67,246.33,356.36,0.9938,0.9375,0.4625,0.026,1.912
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,48,74.94,367.96,709.3,0.9938,0.9375,0.4661,0.04,1.939
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DomainEq,1,21.31,38.23,122.17,0.995,0.95,,0.0,1.939
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DomainEq,8,121.53,38.4,128.81,0.9938,0.9375,,0.0,1.894
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DomainEq,24,126.78,44.45,257.06,0.9927,0.9271,,0.0,1.903
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DomainEq,48,134.13,58.04,213.66,0.9938,0.9375,,0.001,1.921
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_CrossDomainNeg,1,19.76,40.92,119.94,0.955,0.675,,0.057,1.925
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_CrossDomainNeg,8,114.49,38.78,162.44,0.955,0.7,,0.038,1.93
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_CrossDomainNeg,24,116.46,53.84,192.19,0.9531,0.6875,,0.011,1.933
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_CrossDomainNeg,48,134.76,56.34,189.78,0.9594,0.7188,,0.008,1.94
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_100.00pct,1,6.0,169.04,269.23,0.995,0.95,0.5068,0.038,1.94
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_100.00pct,48,61.45,501.46,792.41,0.9938,0.9375,0.4661,0.037,1.936
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_DomainEq,1,18.28,43.65,122.79,0.995,0.95,,0.0,1.936
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_DomainEq,48,140.57,65.24,210.2,0.9943,0.9427,,0.0,1.917
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_CrossDomainNeg,1,16.9,45.32,187.57,0.97,0.725,,0.024,1.92
+vidore_v3_am,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_CrossDomainNeg,48,140.73,76.43,228.75,0.9771,0.8021,,0.002,1.936
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,1,50.08,7.2,19.42,0.7875,0.325,0.4668,25.216,0.972
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,8,100.47,24.22,54.48,0.7663,0.2875,0.4151,3.893,1.341
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,24,102.38,53.5,125.55,0.7833,0.3125,0.4174,0.666,1.467
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,48,154.74,90.5,267.7,0.7875,0.3281,0.421,0.854,1.504
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DomainEq,1,51.69,5.7,9.1,0.4675,0.05,,0.018,1.283
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DomainEq,8,119.0,7.69,22.82,0.445,0.0375,,0.007,1.137
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DomainEq,24,109.26,14.35,80.01,0.4656,0.0417,,0.002,1.176
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DomainEq,48,150.61,15.18,99.8,0.4646,0.0365,,0.952,1.89
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_CrossDomainNeg,1,54.66,5.51,18.93,0.1425,0.0,,0.074,1.89
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_CrossDomainNeg,8,120.82,7.09,27.49,0.1363,0.0,,0.058,0.861
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_CrossDomainNeg,24,111.49,18.55,169.42,0.1406,0.0,,0.01,0.902
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_CrossDomainNeg,48,130.22,21.94,196.86,0.1427,0.0,,0.188,1.436
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_100.00pct,1,39.2,11.73,27.33,0.845,0.425,0.4864,0.926,2.112
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_100.00pct,48,114.85,181.63,430.5,0.8531,0.4427,0.4388,0.0,2.148
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_DomainEq,1,52.63,6.62,8.96,0.4675,0.05,,0.0,2.105
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_DomainEq,48,130.55,27.13,194.56,0.4646,0.0365,,0.0,1.992
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_CrossDomainNeg,1,49.47,6.94,10.9,0.1425,0.0,,0.0,1.997
+vidore_v3_am,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_CrossDomainNeg,48,139.14,19.98,124.93,0.1427,0.0,,0.0,2.006
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,1,44.2,10.05,18.41,0.7925,0.3,0.471,0.0,2.473
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,8,92.52,25.19,65.76,0.775,0.275,0.4169,0.055,2.68
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,24,102.37,39.42,161.07,0.7896,0.3021,0.4117,0.0,2.653
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,48,142.07,61.36,251.84,0.7911,0.3125,0.4191,0.0,2.721
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_DomainEq,1,41.77,9.13,14.63,0.4675,0.05,,0.0,2.7
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_DomainEq,8,104.24,13.95,42.56,0.4462,0.0375,,0.0,2.477
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_DomainEq,24,97.99,19.43,97.24,0.4677,0.0417,,0.0,2.452
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_DomainEq,48,127.13,20.75,117.0,0.4667,0.0365,,0.0,2.477
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_CrossDomainNeg,1,45.74,8.39,21.79,0.14,0.0,,0.0,2.477
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_CrossDomainNeg,8,113.5,9.51,27.75,0.1363,0.0,,0.0,2.477
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_CrossDomainNeg,24,91.33,20.34,117.31,0.1406,0.0,,0.0,2.479
+vidore_v3_am,Weaviate_1.41_MUVERA,ef=-1,Nat_CrossDomainNeg,48,142.37,23.81,120.23,0.1422,0.0,,0.0,2.482
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_100.00pct,1,3.09,340.36,497.6,0.3967,0.0,,23.774,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_100.00pct,48,67.75,555.6,900.95,0.4097,0.0,,1.065,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_5.00pct_ExactNC5,1,3.62,256.52,453.75,0.45,0.0,,1.311,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",NoCorr_5.00pct_ExactNC5,48,66.61,549.78,900.27,0.4417,0.0,,0.121,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_DocLenRange_5pct,1,3.71,266.65,401.08,0.4933,0.0,,1.521,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_DocLenRange_5pct,48,75.07,531.94,910.07,0.4639,0.0139,,0.193,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_Dom0_Filter,1,5.86,155.14,605.96,1.0,1.0,,5.766,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_Dom0_Filter,48,153.92,230.5,331.84,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_Dom1_Filter,1,3.83,257.55,389.28,0.38,0.0,,0.482,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=16,prefilter=off",Nat_Dom1_Filter,48,75.29,536.25,859.45,0.3958,0.0,,0.074,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_100.00pct,1,0.94,989.75,1376.05,0.5233,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_100.00pct,48,16.05,2521.78,3903.07,0.5264,0.0208,,0.338,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_5.00pct_ExactNC5,1,0.95,996.88,1374.97,0.5467,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",NoCorr_5.00pct_ExactNC5,48,16.06,2546.05,3908.22,0.5319,0.0,,0.051,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_DocLenRange_5pct,1,0.95,999.57,1398.79,0.5667,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_DocLenRange_5pct,48,15.98,2563.09,3901.67,0.5444,0.0278,,0.068,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_Dom0_Filter,1,6.41,154.96,169.89,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_Dom0_Filter,48,170.61,231.26,296.77,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_Dom1_Filter,1,0.95,995.18,1409.96,0.4333,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=off",Nat_Dom1_Filter,48,16.71,2537.77,3812.07,0.4562,0.0208,,0.04,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,1,0.95,984.68,1386.83,0.5233,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,8,6.03,1154.99,1600.55,0.51,0.0167,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,24,13.68,1566.14,2369.0,0.5208,0.0139,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_100.00pct,48,16.67,2544.25,3852.25,0.5264,0.0208,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,1,0.95,985.12,1388.68,0.5467,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,8,5.93,1145.59,1650.02,0.525,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,24,12.62,1568.73,2519.69,0.5389,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,48,16.18,2535.96,3892.54,0.5319,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DocLenRange_5pct,1,0.95,997.96,1391.33,0.5667,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DocLenRange_5pct,8,5.33,1192.14,2099.68,0.5533,0.0333,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DocLenRange_5pct,24,12.19,1604.71,2482.28,0.5597,0.0278,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_DocLenRange_5pct,48,16.15,2609.95,3919.2,0.5444,0.0278,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom0_Filter,1,6.41,154.92,169.7,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom0_Filter,8,27.68,156.11,274.64,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom0_Filter,24,85.71,173.04,278.21,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom0_Filter,48,168.95,230.65,277.84,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom1_Filter,1,0.95,989.95,1406.5,0.4333,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom1_Filter,8,4.78,1194.39,1991.34,0.445,0.0167,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom1_Filter,24,12.75,1617.35,2338.46,0.4583,0.0139,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=64,prefilter=on",Nat_Dom1_Filter,48,16.35,2548.07,3889.59,0.4562,0.0208,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_100.00pct,1,0.23,4477.6,5565.69,0.63,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_100.00pct,48,3.52,12320.49,16348.0,0.6292,0.0208,,0.112,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_5.00pct_ExactNC5,1,0.23,4359.64,5335.25,0.67,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",NoCorr_5.00pct_ExactNC5,48,3.57,12271.44,16603.97,0.6326,0.0,,0.045,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_DocLenRange_5pct,1,0.23,4462.54,5543.12,0.71,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_DocLenRange_5pct,48,3.54,12261.07,16676.22,0.6639,0.0139,,0.083,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_Dom0_Filter,1,6.38,155.13,170.82,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_Dom0_Filter,48,179.92,233.05,250.48,1.0,1.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_Dom1_Filter,1,0.23,4469.56,5561.62,0.605,0.0,,0.0,10.596
+lotte_200k,VectorChord_1.5_HalfvecRQ,"probes=256,prefilter=on",Nat_Dom1_Filter,48,3.6,12245.62,16434.39,0.5833,0.0208,,0.046,10.596
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_100.00pct,1,0.93,1049.37,1608.68,0.4167,0.0,,0.03,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_100.00pct,48,16.98,2439.62,3796.85,0.4,0.0,,0.521,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_5.00pct_ExactNC5,1,0.97,1008.88,1522.37,0.4733,0.0,,1.757,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",NoCorr_5.00pct_ExactNC5,48,16.2,2440.54,3886.44,0.4514,0.0,,0.174,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_DocLenRange_5pct,1,0.98,1021.12,1534.29,0.5,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_DocLenRange_5pct,48,16.59,2437.16,3858.97,0.4694,0.0,,0.194,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_Dom0_Filter,1,2.47,387.82,853.02,0.9967,0.9667,,7.706,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_Dom0_Filter,48,66.57,532.19,688.29,0.9979,0.9792,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_Dom1_Filter,1,0.98,1002.8,1556.66,0.4133,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=off",Nat_Dom1_Filter,48,16.89,2407.22,4124.2,0.3847,0.0,,0.124,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,1,0.98,1020.57,1541.67,0.4167,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,8,4.85,1105.43,1792.16,0.4,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,24,13.15,1508.07,2595.5,0.4097,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_100.00pct,48,17.27,2437.2,3771.5,0.4,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,1,0.99,998.84,1542.04,0.4733,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,8,5.11,1116.81,1922.86,0.4583,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,24,12.34,1524.7,2626.34,0.4611,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",NoCorr_5.00pct_ExactNC5,48,17.16,2407.5,3753.83,0.4514,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DocLenRange_5pct,1,0.99,1003.36,1521.9,0.5,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DocLenRange_5pct,8,5.08,1164.25,1918.22,0.485,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DocLenRange_5pct,24,12.33,1545.91,2515.63,0.4847,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_DocLenRange_5pct,48,16.76,2439.2,3795.0,0.4694,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom0_Filter,1,2.56,389.33,420.94,0.9967,0.9667,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom0_Filter,8,12.59,390.24,688.32,0.9983,0.9833,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom0_Filter,24,34.86,436.78,688.77,0.9972,0.9722,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom0_Filter,48,68.75,536.29,681.28,0.9979,0.9792,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom1_Filter,1,0.98,1017.41,1540.36,0.4133,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom1_Filter,8,5.13,1149.67,1900.6,0.395,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom1_Filter,24,12.52,1493.75,2878.09,0.4042,0.0,,0.0,7.217
+lotte_200k,VectorChord_1.5_FP32,"probes=64,prefilter=on",Nat_Dom1_Filter,48,16.77,2402.67,3778.68,0.3847,0.0,,0.0,7.217
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_100.00pct,1,0.57,1708.92,2851.38,0.9725,0.775,,253.935,10.571
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_100.00pct,48,6.13,6942.72,9222.44,0.974,0.7969,,0.439,10.676
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_5.00pct_ExactNC5,1,10.43,93.78,98.95,0.9975,0.975,,3.281,10.753
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,NoCorr_5.00pct_ExactNC5,48,85.09,291.62,481.4,0.9979,0.9792,,0.059,10.842
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_DocLenRange_5pct,1,8.41,118.06,124.72,0.9975,0.975,,3.091,10.945
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_DocLenRange_5pct,48,67.51,393.31,778.34,0.9979,0.9792,,0.06,10.968
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_Dom0_Filter,1,28.57,34.57,41.64,1.0,1.0,,0.59,10.988
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_Dom0_Filter,48,169.46,49.52,104.0,1.0,1.0,,0.01,10.988
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_Dom1_Filter,1,3.35,298.37,305.03,0.955,0.625,,0.483,10.963
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=64,Nat_Dom1_Filter,48,26.72,1313.94,2176.67,0.949,0.6198,,0.029,10.96
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,1,0.58,1726.31,1761.95,0.99,0.9,,0.371,10.96
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,8,3.83,2045.86,2548.79,0.9875,0.8875,,0.052,10.964
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,24,5.67,3895.38,5151.66,0.9875,0.8958,,0.0,10.964
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_100.00pct,48,6.01,7221.14,9680.89,0.9885,0.901,,0.0,10.955
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_5.00pct_ExactNC5,1,10.81,91.56,98.57,1.0,1.0,,0.017,10.931
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_5.00pct_ExactNC5,8,67.06,105.8,124.05,1.0,1.0,,0.006,10.959
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_5.00pct_ExactNC5,24,85.52,157.61,271.58,1.0,1.0,,0.0,10.996
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,NoCorr_5.00pct_ExactNC5,48,91.24,261.46,472.3,1.0,1.0,,0.0,11.014
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DocLenRange_5pct,1,8.52,116.23,124.01,1.0,1.0,,0.0,11.014
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DocLenRange_5pct,8,54.56,139.63,160.01,1.0,1.0,,0.0,11.006
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DocLenRange_5pct,24,68.28,225.73,351.08,1.0,1.0,,0.0,11.012
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_DocLenRange_5pct,48,66.39,427.12,685.14,1.0,1.0,,0.0,11.012
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom0_Filter,1,28.38,33.39,82.73,1.0,1.0,,0.004,11.004
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom0_Filter,8,154.31,42.6,80.66,1.0,1.0,,0.0,11.005
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom0_Filter,24,146.26,43.79,162.87,1.0,1.0,,0.0,11.005
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom0_Filter,48,145.77,54.04,150.19,1.0,1.0,,0.0,11.002
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom1_Filter,1,3.37,296.55,302.99,0.98,0.8,,0.113,11.002
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom1_Filter,8,19.23,399.66,475.02,0.9725,0.7625,,0.022,10.981
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom1_Filter,24,22.99,919.43,1300.41,0.9719,0.7812,,0.0,10.996
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=128,Nat_Dom1_Filter,48,23.11,1501.74,2843.84,0.9729,0.7812,,0.0,10.996
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_100.00pct,1,0.58,1707.7,1792.01,0.995,0.95,,0.191,10.982
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_100.00pct,48,5.88,7278.13,9964.56,0.9943,0.9427,,0.01,10.928
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_5.00pct_ExactNC5,1,10.8,91.78,97.77,1.0,1.0,,0.004,10.939
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,NoCorr_5.00pct_ExactNC5,48,82.89,250.03,537.48,1.0,1.0,,0.0,11.006
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_DocLenRange_5pct,1,8.51,116.92,121.69,1.0,1.0,,0.0,11.006
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_DocLenRange_5pct,48,69.93,408.93,742.21,1.0,1.0,,0.0,11.019
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_Dom0_Filter,1,28.86,33.88,39.83,1.0,1.0,,0.0,11.02
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_Dom0_Filter,48,153.38,48.72,199.73,1.0,1.0,,0.0,11.02
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_Dom1_Filter,1,3.37,296.9,301.15,0.9875,0.875,,0.03,11.006
+lotte_200k,Qdrant_1.20.2_INT8_OnDisk,ef=256,Nat_Dom1_Filter,48,21.94,1688.26,2934.26,0.9865,0.8646,,0.001,10.991
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,1,39.47,9.54,60.71,0.315,0.0,,35.88,2.454
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,8,126.26,7.04,22.82,0.2987,0.0125,,2.219,2.554
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,24,136.01,12.27,37.47,0.2885,0.0104,,0.0,2.601
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_100.00pct,48,109.71,11.42,40.38,0.2906,0.0156,,2.008,3.572
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_5.00pct_ExactNC5,1,43.9,10.3,12.3,0.195,0.0,,1.598,3.572
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_5.00pct_ExactNC5,8,109.6,8.15,98.01,0.1875,0.0,,0.178,2.234
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_5.00pct_ExactNC5,24,121.72,12.59,70.07,0.1844,0.0,,0.0,2.234
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,NoCorr_5.00pct_ExactNC5,48,99.07,19.36,128.35,0.188,0.0,,4.607,3.988
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DocLenRange_5pct,1,42.48,10.95,17.72,0.3075,0.0,,2.822,3.988
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DocLenRange_5pct,8,127.95,6.69,16.14,0.3025,0.0125,,0.294,2.199
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DocLenRange_5pct,24,113.34,12.32,51.0,0.3031,0.0104,,0.0,2.199
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_DocLenRange_5pct,48,176.7,15.41,93.91,0.3042,0.0156,,0.0,2.2
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom0_Filter,1,57.19,4.19,7.71,0.3075,0.0,,1.611,2.23
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom0_Filter,8,124.04,7.12,38.35,0.3088,0.0,,0.133,2.235
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom0_Filter,24,120.03,10.89,79.55,0.3021,0.0,,0.0,2.235
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom0_Filter,48,162.1,14.01,111.52,0.3021,0.0,,0.0,2.235
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom1_Filter,1,46.31,9.16,14.22,0.3075,0.0,,7.393,2.365
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom1_Filter,8,124.23,6.46,16.92,0.2975,0.0125,,0.546,2.385
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom1_Filter,24,118.42,14.27,76.56,0.2917,0.0104,,0.0,2.386
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=-1,Nat_Dom1_Filter,48,154.99,25.19,128.81,0.2938,0.0156,,0.0,2.386
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_100.00pct,1,35.52,15.72,24.52,0.3775,0.0,,7.393,2.703
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_100.00pct,48,159.49,21.32,75.86,0.3573,0.0156,,0.288,2.753
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_5.00pct_ExactNC5,1,45.64,9.42,16.78,0.195,0.0,,0.0,2.76
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,NoCorr_5.00pct_ExactNC5,48,137.2,27.11,188.31,0.188,0.0,,0.0,2.761
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_DocLenRange_5pct,1,40.22,10.45,42.67,0.3075,0.0,,0.0,2.761
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_DocLenRange_5pct,48,135.05,22.81,130.5,0.3042,0.0156,,0.0,2.761
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_Dom0_Filter,1,53.71,5.33,10.81,0.3075,0.0,,0.0,2.761
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_Dom0_Filter,48,134.21,20.22,178.0,0.3021,0.0,,0.0,2.761
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_Dom1_Filter,1,36.47,13.58,26.72,0.39,0.025,,4.098,2.842
+lotte_200k,Weaviate_1.41_MUVERA_RQ,ef=256,Nat_Dom1_Filter,48,151.51,22.11,139.73,0.3661,0.0365,,0.223,2.876
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,1,34.82,13.84,27.8,0.3075,0.0,,0.0,15.923
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,8,112.52,11.89,27.89,0.295,0.0125,,0.0,16.236
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,24,111.61,23.99,87.46,0.2833,0.0104,,0.0,16.244
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_100.00pct,48,149.53,22.14,159.03,0.288,0.0156,,0.0,16.881
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_5.00pct_ExactNC5,1,33.68,14.72,47.78,0.195,0.0,,0.0,16.884
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_5.00pct_ExactNC5,8,106.37,13.16,26.14,0.1875,0.0,,0.0,16.99
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_5.00pct_ExactNC5,24,103.73,24.05,124.33,0.1844,0.0,,0.0,17.024
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,NoCorr_5.00pct_ExactNC5,48,137.04,24.88,104.53,0.188,0.0,,0.0,16.427
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_DocLenRange_5pct,1,33.79,15.02,101.6,0.305,0.0,,0.003,16.707
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_DocLenRange_5pct,8,107.52,13.92,35.56,0.3,0.0125,,0.0,17.185
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_DocLenRange_5pct,24,91.0,17.98,88.98,0.301,0.0104,,0.0,17.185
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_DocLenRange_5pct,48,138.44,32.05,171.54,0.3021,0.0156,,0.0,15.494
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom0_Filter,1,48.17,6.53,16.21,0.3125,0.0,,0.0,15.494
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom0_Filter,8,116.74,11.16,28.69,0.3138,0.0,,0.0,15.494
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom0_Filter,24,96.84,15.77,97.31,0.3063,0.0,,0.0,15.494
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom0_Filter,48,139.99,19.57,133.07,0.3063,0.0,,0.0,15.494
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom1_Filter,1,34.03,15.21,33.78,0.3225,0.0,,0.0,15.494
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom1_Filter,8,109.47,11.62,37.66,0.3113,0.0125,,0.0,15.496
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom1_Filter,24,103.87,22.37,100.22,0.301,0.0104,,0.0,15.497
+lotte_200k,Weaviate_1.41_MUVERA,ef=-1,Nat_Dom1_Filter,48,142.8,22.86,98.3,0.3021,0.0156,,0.0,15.506
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",NoCorr_100.00pct,1,15.64,64.29,85.71,0.9525,0.7,0.5074,18.739,1.263
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",NoCorr_100.00pct,48,109.55,141.64,274.41,0.9406,0.651,0.4668,2.797,1.811
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_DomainEq,1,23.51,42.41,69.57,0.9525,0.7,,0.021,1.811
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_DomainEq,48,131.15,53.8,194.35,0.9422,0.6615,,0.022,1.698
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_CrossDomainNeg,1,21.5,45.23,77.07,0.595,0.05,,1.24,1.595
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_CrossDomainNeg,48,120.14,57.93,150.45,0.6057,0.026,,0.302,1.64
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_100.00pct,1,11.49,88.96,110.65,0.9575,0.725,0.5074,0.139,1.64
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_100.00pct,8,76.72,89.47,128.01,0.945,0.65,0.4581,0.143,1.635
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_100.00pct,24,73.63,163.67,286.92,0.9469,0.6771,0.4628,0.056,1.649
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_100.00pct,48,85.6,261.72,426.89,0.9479,0.6771,0.4663,0.042,1.671
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_DomainEq,1,16.52,57.33,91.67,0.95,0.7,,0.0,1.671
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_DomainEq,8,101.43,56.58,95.64,0.9375,0.6375,,0.001,1.665
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_DomainEq,24,112.4,57.13,147.53,0.9406,0.6667,,0.0,1.669
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_DomainEq,48,128.16,78.51,179.15,0.9438,0.6719,,0.0,1.669
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_CrossDomainNeg,1,15.36,61.63,111.33,0.6175,0.025,,0.081,1.656
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_CrossDomainNeg,8,97.63,61.73,104.86,0.6438,0.0375,,0.042,1.664
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_CrossDomainNeg,24,114.96,65.59,177.53,0.6396,0.0417,,0.013,1.671
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_CrossDomainNeg,48,119.94,81.81,189.54,0.6323,0.026,,0.014,1.676
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",NoCorr_100.00pct,1,8.03,126.46,152.66,0.9575,0.725,0.5074,0.088,1.676
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",NoCorr_100.00pct,48,67.92,379.1,821.2,0.9474,0.6823,0.4665,0.063,1.683
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_DomainEq,1,13.07,68.74,124.04,0.96,0.75,,0.002,1.683
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_DomainEq,48,118.58,95.33,255.5,0.9479,0.6927,,0.0,1.673
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_CrossDomainNeg,1,12.43,73.31,137.11,0.6325,0.025,,0.033,1.669
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_CrossDomainNeg,48,116.16,108.19,218.45,0.6422,0.0312,,0.014,1.681
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=1",NoCorr_100.00pct,48,80.81,284.79,478.32,0.8026,0.224,0.4623,0.0,1.692
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=1",Nat_DomainEq,48,127.14,79.49,195.5,0.8016,0.224,,0.0,1.7
+vidore_v3_am,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=1",Nat_CrossDomainNeg,48,124.94,85.75,206.57,0.4865,0.0052,,0.0,1.7
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",NoCorr_100.00pct,1,0.94,1255.99,1307.03,0.875,0.3,,58.17,2.43
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",NoCorr_100.00pct,48,9.44,4490.7,7511.69,0.8786,0.3229,,1.912,2.704
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",NoCorr_5.00pct_ExactNC5,1,20.18,48.4,57.67,0.94,0.625,,16.583,3.062
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",NoCorr_5.00pct_ExactNC5,48,124.87,196.91,331.98,0.9453,0.6562,,0.454,3.156
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_DocLenRange_5pct,1,10.87,91.12,97.12,0.93,0.5,,12.569,3.489
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_DocLenRange_5pct,48,95.79,267.2,475.76,0.9349,0.5156,,0.392,3.561
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_Dom0_Filter,1,36.76,26.61,33.02,0.9,0.375,,2.237,3.632
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_Dom0_Filter,48,181.57,39.03,102.09,0.8917,0.401,,0.038,3.639
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_Dom1_Filter,1,2.0,500.48,509.53,0.8125,0.225,,2.852,3.675
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=64,os=2",Nat_Dom1_Filter,48,33.07,1175.52,1711.01,0.8135,0.2083,,0.09,3.733
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_100.00pct,1,1.34,733.35,1248.08,0.89,0.375,,0.547,3.733
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_100.00pct,8,7.79,976.59,1288.87,0.8863,0.375,,0.115,3.723
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_100.00pct,24,8.76,2523.11,3501.35,0.8948,0.4062,,0.0,3.734
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_100.00pct,48,8.97,4091.37,8168.9,0.8943,0.401,,0.0,3.734
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_5.00pct_ExactNC5,1,22.34,44.03,47.82,0.94,0.625,,0.023,3.706
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_5.00pct_ExactNC5,8,113.25,55.4,91.54,0.9412,0.65,,0.006,3.727
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_5.00pct_ExactNC5,24,111.09,109.8,216.69,0.9437,0.6458,,0.0,3.753
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",NoCorr_5.00pct_ExactNC5,48,118.89,155.71,325.77,0.9453,0.6562,,0.0,3.756
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_DocLenRange_5pct,1,11.46,86.62,94.36,0.93,0.5,,0.034,3.756
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_DocLenRange_5pct,8,70.02,100.29,122.18,0.93,0.5,,0.009,3.765
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_DocLenRange_5pct,24,79.51,172.0,330.44,0.9344,0.5104,,0.0,3.771
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_DocLenRange_5pct,48,82.52,342.51,532.72,0.9349,0.5156,,0.0,3.78
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_Dom0_Filter,1,39.08,24.97,28.24,0.9,0.375,,0.0,3.78
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_Dom0_Filter,8,216.26,27.65,42.0,0.8913,0.3875,,0.0,3.767
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_Dom0_Filter,24,190.61,28.06,81.15,0.8948,0.4062,,0.0,3.756
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_Dom0_Filter,48,177.31,41.84,91.88,0.8917,0.401,,0.0,3.761
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_Dom1_Filter,1,1.96,500.91,856.86,0.8525,0.325,,0.146,3.761
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_Dom1_Filter,8,13.93,536.16,901.66,0.845,0.2875,,0.007,3.744
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_Dom1_Filter,24,23.93,812.88,1166.05,0.85,0.2917,,0.0,3.751
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2",Nat_Dom1_Filter,48,28.77,1418.85,2196.0,0.85,0.2917,,0.0,3.778
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",NoCorr_100.00pct,1,1.36,733.61,788.36,0.9,0.425,,0.357,3.778
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",NoCorr_100.00pct,48,8.57,4862.96,7554.51,0.9042,0.4427,,0.031,3.737
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",NoCorr_5.00pct_ExactNC5,1,22.21,44.35,49.04,0.94,0.625,,0.02,3.732
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",NoCorr_5.00pct_ExactNC5,48,119.47,176.65,318.29,0.9453,0.6562,,0.0,3.77
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_DocLenRange_5pct,1,11.47,86.43,90.32,0.9325,0.525,,0.022,3.771
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_DocLenRange_5pct,48,91.22,312.87,482.55,0.937,0.5365,,0.001,3.793
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_Dom0_Filter,1,39.54,24.83,27.64,0.9,0.375,,0.0,3.794
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_Dom0_Filter,48,185.28,42.94,118.91,0.8917,0.401,,0.0,3.8
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_Dom1_Filter,1,1.99,500.07,622.21,0.8675,0.4,,0.082,3.8
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=256,os=2",Nat_Dom1_Filter,48,25.18,1557.55,2557.62,0.8693,0.3698,,0.002,3.788
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=1",NoCorr_100.00pct,48,9.0,4084.87,8248.26,0.8214,0.2865,,0.0,3.788
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=1",NoCorr_5.00pct_ExactNC5,48,110.88,208.54,364.81,0.8625,0.349,,0.001,3.737
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=1",Nat_DocLenRange_5pct,48,89.32,288.94,460.22,0.8755,0.3125,,0.0,3.741
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=1",Nat_Dom0_Filter,48,174.81,37.4,138.19,0.7823,0.1406,,0.0,3.744
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=1",Nat_Dom1_Filter,48,28.17,1460.62,1909.48,0.7698,0.2083,,0.0,3.76
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2,COLD_DONTNEED",NoCorr_100.00pct,48,8.86,4375.94,6348.75,0.8943,0.401,,0.0,3.76
+lotte_200k,Qdrant_1.20.2_BQ_OnDisk,"ef=128,os=2,COLD_DONTNEED",NoCorr_5.00pct_ExactNC5,48,110.0,188.21,364.77,0.9453,0.6562,,0.0,3.773
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3_np32_C4000,NoCorr_5.00pct_ExactNC5,48,422.277,118.3871,176.8996,1.0,1.0,,17.6472,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3_np32_C4000,NoCorr_5.00pct_ExactNC5,48,1129.0376,39.6201,54.4856,1.0,1.0,,1.7622,2.129
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3_np32_C4000,NoCorr_100.00pct,48,367.3079,126.369,200.2196,0.9417,0.7266,,20.1403,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3_np32_C4000,NoCorr_100.00pct,48,819.0695,54.7938,94.1932,0.9417,0.7266,,2.2013,2.129
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3_np32_C4000,Nat_DocLenRange_5pct,48,303.457,163.3148,251.4032,1.0,1.0,,25.201,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3_np32_C4000,Nat_DocLenRange_5pct,48,881.6187,51.3566,67.5459,1.0,1.0,,2.3646,2.129
+lotte_200k,PM-MaxSim (Split_B1_B4_T3),exact_T3_np32_C4000,Nat_Dom1_Filter,48,342.2883,138.8711,208.9672,0.9719,0.8828,,21.9047,0.748
+lotte_200k,PM-MaxSim (PM_DRAM_T1),exact_T3_np32_C4000,Nat_Dom1_Filter,48,976.6937,46.1208,64.4012,0.9719,0.8828,,2.1837,2.129

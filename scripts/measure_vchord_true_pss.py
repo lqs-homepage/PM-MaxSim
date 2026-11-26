@@ -85,6 +85,7 @@ if __name__ == "__main__":
         probe_one("pg17_vchord_rq_halfvec", "lotte_200k", 55442, "halfvec(128)[]"),
         probe_one("pg17_vchord_rq_halfvec", "vidore_v3_am", 55442, "halfvec(128)[]"),
         probe_one("pg17_vchord", "lotte_200k", 55441, "vector(128)[]"),
+        probe_one("pg17_vchord", "vidore_v3_am", 55441, "vector(128)[]"),
     ]
     with open(OUT, "w") as f:
         json.dump({"rows": rows}, f, indent=2)

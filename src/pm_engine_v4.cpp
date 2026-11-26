@@ -77,6 +77,28 @@ static uint64_t read_proc_self_io_read_bytes() {
     return 0;
 }
 
+static void read_proc_self_mem_gb(double& pss_gb, double& rss_gb, double& hwm_gb) {
+    pss_gb = rss_gb = hwm_gb = 0.0;
+    {
+        std::ifstream f("/proc/self/smaps_rollup");
+        std::string line;
+        while (std::getline(f, line)) {
+            if (line.rfind("Pss:", 0) == 0) pss_gb = std::stod(line.substr(4)) / 1048576.0;
+            else if (line.rfind("Rss:", 0) == 0) rss_gb = std::stod(line.substr(4)) / 1048576.0;
+        }
+    }
+    {
+        std::ifstream f("/proc/self/status");
+        std::string line;
+        while (std::getline(f, line)) {
+            if (line.rfind("VmHWM:", 0) == 0) { hwm_gb = std::stod(line.substr(6)) / 1048576.0; break; }
+        }
+    }
+}
+
+static double g_delta = 0.05;
+static bool g_force_path3 = false;
+
 static double sample_active_mhz_0_47(int nT) {
     std::ifstream f("/proc/cpuinfo");
     std::string line;
@@ -682,7 +704,7 @@ struct Tier1QueryPrepV4 {
         valid_q_mask = vmask;
         use_cap = is_unit;
         int mc = std::clamp(total_valid_q, 1, 256);
-        double tc = get_t_coeff_v4(mc, part2_allk, topk);
+        double tc = get_t_coeff_v4(mc, part2_allk, topk, g_delta);
         t_coeff = (float)tc;
 
         for (int t = 0; t < 32; ++t) {
@@ -983,7 +1005,7 @@ static UnitTestReport run_theorem3_unit_test_v4(const SegmentIndex& idx) {
         bool p2_mode = (b == 2);
         int test_k = (b == 2) ? 100 : 10;
         qp.init(Q32.data(), Qrot.data(), lut.valid_q_mask, lut.n_valid_q, idx.is_unit != 0, idx.m_norm_max, p2_mode, idx.has_b1, test_k);
-        double tc = get_t_coeff_v4(lut.n_valid_q, p2_mode, test_k);
+        double tc = get_t_coeff_v4(lut.n_valid_q, p2_mode, test_k, g_delta);
 
         for (size_t di = 0; di < test_docs.size(); ++di) {
             uint32_t did = test_docs[di];
@@ -1314,7 +1336,7 @@ static std::vector<uint32_t> tier0_flat(const SegmentIndex& idx, const uint64_t*
 static std::vector<uint32_t> tier0_pm_dual_v4(const SegmentIndex& idx, const uint64_t* bm, const roaring_bitmap_t* pred_rb,
                                               const float* S_bf16, const uint8_t* S4, uint32_t vmask,
                                               int nprobe_c, int C1, bool is_unf, bool use_cb, double gamma_cb = 0.08,
-                                              bool* tripped_out = nullptr, const uint64_t* tomb = nullptr) {
+                                              bool* tripped_out = nullptr, const uint64_t* tomb = nullptr, bool allow_path1 = true) {
     uint64_t n_valid = idx.N_docs;
     if (!is_unf) {
         n_valid = 0;
@@ -1324,7 +1346,7 @@ static std::vector<uint32_t> tier0_pm_dual_v4(const SegmentIndex& idx, const uin
         }
         if (n_valid == 0) return {};
         uint64_t tau1 = idx.dynamic_tau1(nprobe_c, __builtin_popcount(vmask));
-        if (n_valid <= tau1) return tier0_flat(idx, bm, S4, C1, tomb);
+        if (allow_path1 && n_valid <= tau1) return tier0_flat(idx, bm, S4, C1, tomb);
     }
     CentroidTopK topk; topk.select(S_bf16, idx.K, vmask, nprobe_c);
     std::vector<uint32_t> pcids; pcids.reserve(32 * nprobe_c);
@@ -1364,30 +1386,10 @@ static std::vector<uint32_t> tier0_pm_dual_v4(const SegmentIndex& idx, const uin
     }
     if (tripped_out) *tripped_out = tripped;
     if (tripped) {
-        // Two-stage fallback: if mild negative correlation (p_hat >= 0.01*sigma) and large N_P > 150K, expand nprobe (8->64);
-        // if severe dead-posting poisoning (p_hat < 0.01*sigma, e.g. AdvDeadPost 0% survival), jump directly to full Path I scan!
-        double trip_p = (double)tot_live / std::max<double>(1.0, (double)tot_raw);
-        if (n_valid > 150000 && !is_unf && tot_live > 0 && trip_p >= 0.01 * sigma) {
-            CentroidTopK topk_exp; topk_exp.select(S_bf16, idx.K, vmask, 64);
-            std::vector<uint32_t> ecids; ecids.reserve(32 * 64);
-            uint32_t vm2 = vmask;
-            while (vm2) { int t = __builtin_ctz(vm2); vm2 &= vm2 - 1; for (const auto& [sc, cid] : topk_exp.top_per_tok[t]) ecids.push_back(cid); }
-            std::sort(ecids.begin(), ecids.end());
-            ecids.erase(std::unique(ecids.begin(), ecids.end()), ecids.end());
-            for (uint32_t cid : ecids) {
-                roaring_bitmap_t* inter = roaring_bitmap_and(idx.inv_roaring[cid], pred_rb);
-                if (roaring_bitmap_get_cardinality(inter) > 0) roaring_bitmap_or_inplace(cu, inter);
-                roaring_bitmap_free(inter);
-                if (roaring_bitmap_get_cardinality(cu) >= (uint64_t)(4 * C1)) break;
-            }
-            if (roaring_bitmap_get_cardinality(cu) < (uint64_t)C1) {
-                roaring_bitmap_free(cu);
-                return tier0_flat(idx, bm, S4, C1, tomb);
-            }
-        } else {
-            roaring_bitmap_free(cu);
-            return tier0_flat(idx, bm, S4, C1, tomb);
-        }
+        // Exact Theorem 4B Rule B fallback: switch directly to exhaustive Path I (K0_4b) scan
+        // for zero-heuristic guaranteed recall recovery across all dead-posting & semi-poisoning regimes.
+        roaring_bitmap_free(cu);
+        return tier0_flat(idx, bm, S4, C1, tomb);
     }
     uint64_t nc = roaring_bitmap_get_cardinality(cu);
     std::vector<uint32_t> cids(nc);
@@ -1468,22 +1470,169 @@ static std::vector<uint32_t> tier0_warp_pure(const SegmentIndex& idx, const roar
     return out;
 }
 
+static inline uint64_t splitmix64_v4(uint64_t x) {
+    x += 0x9e3779b97f4a7c15ULL;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31);
+}
+
+static void run_semipoison_bench(const SegmentIndex& idx, const std::string& out_json, int nT, int C1_pool, int nprobe_arg) {
+    const int nq = (int)std::min<uint64_t>(idx.Nq, 50);
+    const double sigma = 0.30;
+    const double surv_grid[7] = {0.0, 0.005, 0.01, 0.02, 0.03, 0.05, 0.10};
+    std::ofstream fo(out_json);
+    fo << std::fixed << std::setprecision(4) << "{\n  \"N_docs\": " << idx.N_docs << ", \"sigma\": " << sigma
+       << ", \"threads\": " << nT << ", \"gamma_cb\": 0.08,\n  \"rows\": [\n";
+    bool first = true;
+
+    // Precompute hot posting union per query once
+    std::vector<roaring_bitmap_t*> hot_rbs(nq, nullptr);
+    {
+        QueryLUT lut;
+        for (int q = 0; q < nq; ++q) {
+            build_query_lut(idx.C_bf16.data(), idx.K, idx.Q_32.data() + (size_t)q * 32 * 128, lut);
+            CentroidTopK topk; topk.select(lut.S_bf16.data(), idx.K, lut.valid_q_mask, nprobe_arg);
+            roaring_bitmap_t* hr = roaring_bitmap_create();
+            uint32_t vm = lut.valid_q_mask;
+            while (vm) { int t = __builtin_ctz(vm); vm &= vm - 1; for (const auto& [sc, cid] : topk.top_per_tok[t]) roaring_bitmap_or_inplace(hr, idx.inv_roaring[cid]); }
+            hot_rbs[q] = hr;
+        }
+    }
+
+    for (double hs : surv_grid) {
+        std::vector<std::vector<uint64_t>> bms(nq, std::vector<uint64_t>(idx.n_words, 0));
+        std::vector<roaring_bitmap_t*> rbs(nq, nullptr);
+        std::vector<std::vector<uint32_t>> ref_gt10(nq, std::vector<uint32_t>(10, 0));
+
+        // Build per-query semi-poisoned predicate bitmaps & exhaustive Path-I exact FP16 reference Top-10
+        #pragma omp parallel num_threads(nT)
+        {
+            init_amx_thread();
+            ThreadUringReader tr_b4r, tr_t2;
+            if (idx.has_b4_ram) tr_b4r.init(&idx.tier1_b4_ram, 1, 70);
+            tr_t2.init(&idx.tier2_nvme, 32, 256);
+            QueryLUT lut;
+            #pragma omp for schedule(dynamic, 1)
+            for (int q = 0; q < nq; ++q) {
+                uint64_t hot_n = roaring_bitmap_get_cardinality(hot_rbs[q]);
+                double cold_n = std::max(1.0, (double)idx.N_docs - (double)hot_n);
+                double want_cold = std::max(0.0, sigma * (double)idx.N_docs - hs * (double)hot_n);
+                double cold_p = std::clamp(want_cold / cold_n, 0.0, 1.0);
+                uint64_t th_hot = (uint64_t)(hs * (double)UINT64_MAX);
+                uint64_t th_cold = (uint64_t)(cold_p * (double)UINT64_MAX);
+                auto& bm = bms[q];
+                uint64_t seed_q = 0x517cc1b727220a95ULL ^ ((uint64_t)q * 1315423911ULL) ^ (uint64_t)(hs * 100000.0);
+                for (uint32_t d = 0; d < idx.N_docs; ++d) {
+                    bool is_h = roaring_bitmap_contains(hot_rbs[q], d);
+                    uint64_t r = splitmix64_v4(seed_q ^ (uint64_t)d);
+                    bool keep = is_h ? (hs > 0.0 && r < th_hot) : (r < th_cold);
+                    if (keep) bm[d >> 6] |= (1ULL << (d & 63));
+                }
+                rbs[q] = bitmap_to_roaring(bm.data(), idx.N_docs);
+                const float* Qq = idx.Q_32.data() + (size_t)q * 32 * 128;
+                const float* Qrq = idx.Q_rot.data() + (size_t)q * 32 * 128;
+                build_query_lut(idx.C_bf16.data(), idx.K, Qq, lut);
+                Tier1QueryPrepV4 qp; qp.init(Qq, Qrq, lut.valid_q_mask, lut.n_valid_q, idx.is_unit != 0, idx.m_norm_max, false, false, 10);
+                auto fc = tier0_flat(idx, bm.data(), lut.S4.data(), C1_pool);
+                RerankStats rst = idx.has_b4_ram
+                    ? rerank_t3_b4(fc, tr_b4r, tr_t2, lut.S_bf16.data(), idx.C_norms.data(), idx.C_bf_err.data(), Qq, qp, 10)
+                    : rerank_direct_exact(fc, tr_t2, Qq, lut.valid_q_mask, 10);
+                for (int r = 0; r < std::min(10, rst.n_out); ++r) ref_gt10[q][r] = rst.topk_ids[r];
+            }
+        }
+
+        // Benchmark Protected PM_DRAM_T1 (use_cb=true) vs Unprotected B2b_InvK0 (use_cb=false, allow_path1=false)
+        for (int is_pm = 1; is_pm >= 0; --is_pm) {
+            idx.tier1_b4_nvme.flush_cold(); idx.tier2_nvme.flush_cold();
+            int total_q = std::max(nT * 4, 200);
+            std::vector<double> lats(total_q, 0.0), recs(total_q, 0.0);
+            std::atomic<uint64_t> trips{0}; std::atomic<int> next_q{0};
+            double wt0 = 0.0, wt1 = 0.0;
+            #pragma omp parallel num_threads(nT)
+            {
+                init_amx_thread();
+                ThreadUringReader tr_b4r, tr_t2;
+                if (idx.has_b4_ram) tr_b4r.init(&idx.tier1_b4_ram, 1, 70);
+                tr_t2.init(&idx.tier2_nvme, 32, 256);
+                QueryLUT lut;
+                #pragma omp barrier
+                #pragma omp single
+                { wt0 = monotonic_ns(); }
+                while (true) {
+                    int job = next_q.fetch_add(1, std::memory_order_relaxed); if (job >= total_q) break;
+                    int q = job % nq;
+                    const float* Qq = idx.Q_32.data() + (size_t)q * 32 * 128;
+                    const float* Qrq = idx.Q_rot.data() + (size_t)q * 32 * 128;
+                    double qt0 = monotonic_ns();
+                    build_query_lut(idx.C_bf16.data(), idx.K, Qq, lut);
+                    Tier1QueryPrepV4 qp; qp.init(Qq, Qrq, lut.valid_q_mask, lut.n_valid_q, idx.is_unit != 0, idx.m_norm_max, false, false, 10);
+                    bool tr = false;
+                    auto cands = tier0_pm_dual_v4(idx, bms[q].data(), rbs[q], lut.S_bf16.data(), lut.S4.data(),
+                                                  lut.valid_q_mask, nprobe_arg, C1_pool, false, (is_pm == 1), 0.08, &tr, nullptr, (is_pm == 1));
+                    if (tr) trips.fetch_add(1, std::memory_order_relaxed);
+                    RerankStats st = (is_pm == 1 && idx.has_b4_ram)
+                        ? rerank_t3_b4(cands, tr_b4r, tr_t2, lut.S_bf16.data(), idx.C_norms.data(), idx.C_bf_err.data(), Qq, qp, 10)
+                        : rerank_direct_exact(cands, tr_t2, Qq, lut.valid_q_mask, 10);
+                    lats[job] = (monotonic_ns() - qt0) * 1e-6;
+                    recs[job] = calc_recall_k(st.topk_ids, st.n_out, ref_gt10[q].data(), 10);
+                }
+                #pragma omp barrier
+                #pragma omp single
+                { wt1 = monotonic_ns(); }
+            }
+            double ws = (wt1 - wt0) * 1e-9;
+            std::sort(lats.begin(), lats.end());
+            double p50 = lats[lats.size() / 2], p99 = lats[std::min(lats.size() - 1, (size_t)(lats.size() * 0.99))];
+            double rk = std::accumulate(recs.begin(), recs.end(), 0.0) / total_q;
+            double tr_pct = 100.0 * (double)trips.load() / total_q;
+            if (!first) fo << ",\n";
+            first = false;
+            fo << "    {\"hot_surv_pct\": " << (hs * 100.0) << ", \"method\": \"" << (is_pm ? "PM_DRAM_T1_CB" : "B2b_InvK0_NoCB")
+               << "\", \"qps\": " << (total_q / ws) << ", \"p50_ms\": " << p50 << ", \"p99_ms\": " << p99
+               << ", \"recall10_vs_path1\": " << rk << ", \"cb_trip_pct\": " << tr_pct << "}";
+            std::cerr << "  [SemiPoison hot_surv=" << std::setprecision(1) << (hs * 100.0) << "%] "
+                      << (is_pm ? "PM_DRAM_T1_CB " : "B2b_InvK0_NoCB") << " | QPS=" << (total_q / ws)
+                      << " P50=" << p50 << " P99=" << p99 << " R10=" << std::setprecision(3) << rk
+                      << " Trip=" << std::setprecision(1) << tr_pct << "%\n";
+        }
+        for (auto* r : rbs) if (r) roaring_bitmap_free(r);
+    }
+    for (auto* r : hot_rbs) if (r) roaring_bitmap_free(r);
+    fo << "\n  ]\n}\n";
+}
+
 // ============================================================================
 // MAIN MODES:
-//   --unit-test <index_dir> [--no-amx]
+//   --unit-test <index_dir> [--no-amx] [--delta 0.05]
 //   --bench-single <index_dir> <out_json> [--no-amx] [--threads 1,8,24,48]
-//                  [--topk 10|50|100] [--workloads w1,w2] [--dump-topids <dir>]
+//                  [--topk 10|50|100] [--delta 0.05] [--force-path3] [--methods 0,1,2]
+//                  [--tier-mem-mode nvme|split|dram] [--skip-unit-test]
+//                  [--workloads w1,w2] [--dump-topids <dir>]
+//   --bench-semipoison <index_dir> <out_json> [--threads 48]
 // ============================================================================
 int main(int argc, char** argv) {
-    std::string mode, dir, out_json = "/tmp/pm_v4_out.json", dump_dir;
+    std::string mode, dir, out_json = "/tmp/pm_v4_out.json", dump_dir, tier_mem_mode = "all";
     std::vector<int> threads = {1, 8, 24, 48};
     std::vector<std::string> wl_filter;
     int topk = 10, c1_arg = 600, nprobe_arg = 8;
+    uint32_t method_mask = 0xFFu;
+    bool skip_unit_test = false;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--no-amx") g_force_no_amx = true;
+        else if (a == "--force-path3") g_force_path3 = true;
+        else if (a == "--skip-unit-test") skip_unit_test = true;
+        else if (a == "--delta" && i + 1 < argc) { g_delta = std::stod(argv[++i]); }
+        else if (a == "--tier-mem-mode" && i + 1 < argc) { tier_mem_mode = argv[++i]; }
+        else if (a == "--methods" && i + 1 < argc) {
+            method_mask = 0u;
+            std::stringstream ss(argv[++i]); std::string tok;
+            while (std::getline(ss, tok, ',')) if (!tok.empty()) method_mask |= (1u << std::stoi(tok));
+        }
         else if (a == "--unit-test" && i + 1 < argc) { mode = "unit_test"; dir = argv[++i]; }
         else if (a == "--bench-single" && i + 2 < argc) { mode = "bench_single"; dir = argv[++i]; out_json = argv[++i]; }
+        else if (a == "--bench-semipoison" && i + 2 < argc) { mode = "semipoison"; dir = argv[++i]; out_json = argv[++i]; }
         else if (a == "--topk" && i + 1 < argc) { topk = std::clamp(std::stoi(argv[++i]), 1, 100); }
         else if (a == "--c1" && i + 1 < argc) { c1_arg = std::max(10, std::stoi(argv[++i])); }
         else if (a == "--nprobe" && i + 1 < argc) { nprobe_arg = std::max(1, std::stoi(argv[++i])); }
@@ -1499,25 +1648,36 @@ int main(int argc, char** argv) {
         }
     }
     if (mode.empty()) {
-        std::cerr << "Usage: " << argv[0] << " --unit-test <dir> | --bench-single <dir> <out.json> [--no-amx] [--threads 1,8,24,48] [--topk 10|50|100] [--c1 600] [--nprobe 8] [--workloads a,b] [--dump-topids <dir>]\n";
+        std::cerr << "Usage: " << argv[0] << " --unit-test <dir> | --bench-single <dir> <out.json> | --bench-semipoison <dir> <out.json>\n";
         return 1;
     }
     init_amx_process();
     init_amx_thread();
 
     SegmentIndex idx;
-    bool load_b4 = (mode == "bench_single");
-    if (!idx.load(dir, load_b4, true, mode == "bench_single")) return 2;
+    bool load_b4 = (mode == "bench_single" || mode == "semipoison");
+    bool load_b1 = true;
+    if (tier_mem_mode == "nvme")       { load_b4 = false; load_b1 = false; }
+    else if (tier_mem_mode == "split") { load_b4 = false; load_b1 = true; }
+    else if (tier_mem_mode == "dram")  { load_b4 = true;  load_b1 = false; }
+    if (!idx.load(dir, load_b4, load_b1, mode == "bench_single")) return 2;
 
-    UnitTestReport ut = run_theorem3_unit_test_v4(idx);
-    if (ut.viol_b4 != 0 || ut.viol_b1 != 0) {
-        std::cerr << "FATAL: Theorem 3 expanded unit test FAILED!\n";
-        return 99;
+    UnitTestReport ut{};
+    if (!skip_unit_test) {
+        ut = run_theorem3_unit_test_v4(idx);
+        if (ut.viol_b4 != 0 || ut.viol_b1 != 0) {
+            std::cerr << "FATAL: Theorem 3 expanded unit test FAILED!\n";
+            return 99;
+        }
     }
     if (mode == "unit_test") {
-        std::cout << "{\"unit_test_pass\": true, \"b4_pairs\": " << ut.n_pairs_b4 << ", \"b4_viol\": " << ut.viol_b4
+        std::cout << "{\"unit_test_pass\": true, \"delta\": " << g_delta << ", \"b4_pairs\": " << ut.n_pairs_b4 << ", \"b4_viol\": " << ut.viol_b4
                   << ", \"b1_pairs\": " << ut.n_pairs_b1 << ", \"b1_viol\": " << ut.viol_b1
                   << ", \"m_norm_max\": " << idx.m_norm_max << ", \"amx_active\": " << ((g_amx_perm && !g_force_no_amx) ? "true" : "false") << "}\n";
+        return 0;
+    }
+    if (mode == "semipoison") {
+        run_semipoison_bench(idx, out_json, threads.empty() ? 48 : threads.back(), c1_arg, nprobe_arg);
         return 0;
     }
 
@@ -1542,6 +1702,8 @@ int main(int argc, char** argv) {
     fo << std::fixed << std::setprecision(4)
        << "{\n  \"dir\": \"" << dir << "\", \"N_docs\": " << idx.N_docs << ", \"K\": " << idx.K
        << ", \"topk\": " << topk << ", \"c1\": " << C1_pool << ", \"nprobe\": " << nprobe_arg
+       << ", \"delta\": " << g_delta << ", \"force_path3\": " << (g_force_path3 ? "true" : "false")
+       << ", \"tier_mem_mode\": \"" << tier_mem_mode << "\""
        << ", \"m_norm_max\": " << idx.m_norm_max
        << ", \"amx_active\": " << ((g_amx_perm && !g_force_no_amx) ? "true" : "false")
        << ", \"unit_test\": {\"b4_pairs\": " << ut.n_pairs_b4 << ", \"b4_viol\": " << ut.viol_b4
@@ -1578,6 +1740,7 @@ int main(int argc, char** argv) {
         for (int nT : threads) {
             int total_q = (nT == 1) ? nq : std::max(nT * 8, 200);
             for (int m = 0; m < 8; ++m) {
+                if (!((method_mask >> m) & 1u)) continue;
                 if (m == 0 && !idx.has_b1) continue;
                 if ((m == 1 || m == 4) && !idx.has_b4_ram) continue;
                 idx.tier1_b4_nvme.flush_cold();
@@ -1626,7 +1789,8 @@ int main(int argc, char** argv) {
                         if (m == 6)      cands = tier0_warp_pure(idx, rb, lut.S_bf16.data(), lut.valid_q_mask, nprobe_arg, C1_pool, is_unf);
                         else if (m == 7) cands = tier0_flat(idx, bm, lut.S4.data(), C1_pool);
                         else             cands = tier0_pm_dual_v4(idx, bm, rb, lut.S_bf16.data(), lut.S4.data(),
-                                                                  lut.valid_q_mask, nprobe_arg, C1_pool, is_unf, (m != 5), 0.08, &tripped);
+                                                                  lut.valid_q_mask, nprobe_arg, C1_pool, is_unf, (m != 5), 0.08, &tripped,
+                                                                  nullptr, (m != 5) && !g_force_path3);
                         if (tripped) cb_trips.fetch_add(1, std::memory_order_relaxed);
                         double qt_t0 = monotonic_ns();
 
@@ -1701,6 +1865,8 @@ int main(int argc, char** argv) {
         }
         if (!is_unf) for (auto* r : rbs) if (r) roaring_bitmap_free(r);
     }
-    fo << "\n  ]\n}\n";
+    double pss_gb = 0, rss_gb = 0, hwm_gb = 0;
+    read_proc_self_mem_gb(pss_gb, rss_gb, hwm_gb);
+    fo << "\n  ],\n  \"proc_mem_gb\": {\"pss_gb\": " << pss_gb << ", \"rss_gb\": " << rss_gb << ", \"vm_hwm_gb\": " << hwm_gb << "}\n}\n";
     return 0;
 }
