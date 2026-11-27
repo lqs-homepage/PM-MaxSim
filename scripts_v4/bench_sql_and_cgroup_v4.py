@@ -167,22 +167,45 @@ def bench_pg17_same_server_head_to_head(
         dsn = f"host={sock_dir} port={port} user=postgres dbname=postgres"
 
         with psycopg.connect(dsn, autocommit=True) as conn:
-            conn.execute("CREATE EXTENSION IF NOT EXISTS pg_certvec;")
+            conn.execute("DROP EXTENSION IF EXISTS pg_certvec CASCADE;")
+            conn.execute("CREATE EXTENSION pg_certvec;")
             info_json = json.loads(conn.execute("SELECT pm_certvec_info(%s, %s);", (str(idx_dir), str(sidecar_dir))).fetchone()[0])
             print(f"[PG17 H2H {tag}] pg_certvec info: {info_json}", flush=True)
+            if tag == "msmarco_docs_768d":
+                conn.execute("CREATE TABLE IF NOT EXISTS dom_meta (dom_id INT PRIMARY KEY, dom_name TEXT);")
+                conn.execute("TRUNCATE dom_meta;")
+                conn.execute("INSERT INTO dom_meta VALUES (0,'dom_0'),(1,'dom_1'),(2,'dom_2'),(3,'dom_3'),(4,'dom_4');")
 
         idle_procs, idle_pss, idle_rss = measure_tree_pss_rss_gb(pm_pid)
 
         is_docs768 = (tag == "msmarco_docs_768d")
+        bm25_aux_bytes = None
+        q_concat_bytes = None
+        w3_gt_map = {}
         if is_docs768:
             Q_f32 = np.load(idx_dir / "queries_f32.npy")[:100].astype(np.float32)
             Lq = 1
             q_bytes_list = [Q_f32[i].tobytes() for i in range(len(Q_f32))]
+            q_concat_bytes = [(np.concatenate([Q_f32[i], Q_f32[i]]).astype(np.float32)).tobytes() for i in range(len(Q_f32))]
             q_vchord_list = ["[" + ",".join(f"{x:.4f}" for x in Q_f32[i]) + "]" for i in range(len(Q_f32))]
+            sp = np.load(idx_dir / "bm25_sparse_1000q.npz")
+            sp_offs = sp["offs"]
+            sp_rids = sp["rids"].astype(np.uint32)
+            sp_scores = sp["scores"].astype(np.float32)
+            bm25_aux_bytes = []
+            for qi in range(len(Q_f32)):
+                s0, s1 = int(sp_offs[qi]), int(sp_offs[qi + 1])
+                cnt = s1 - s0
+                bm25_aux_bytes.append(struct.pack("<I", cnt) + sp_rids[s0:s1].tobytes() + sp_scores[s0:s1].tobytes())
             gt_map = {
                 "NoCorr_100pct": np.load(idx_dir / "gt_NoCorr_100pct.npz")["w1_max_gt"],
                 "NoCorr_5pct": np.load(idx_dir / "gt_NoCorr_5pct.npz")["w1_max_gt"],
                 "Nat_Dom0_Eq": np.load(idx_dir / "gt_Nat_Dom0_Eq.npz")["w1_max_gt"],
+            }
+            w3_gt_map = {
+                "NoCorr_100pct": np.load(idx_dir / "gt_NoCorr_100pct.npz")["w3_hyb_gt"],
+                "NoCorr_5pct": np.load(idx_dir / "gt_NoCorr_5pct.npz")["w3_hyb_gt"],
+                "Nat_Dom0_Eq": np.load(idx_dir / "gt_Nat_Dom0_Eq.npz")["w3_hyb_gt"],
             }
             wl_specs = [
                 ("NoCorr_100pct", lambda q: "TRUE", "NoCorr_100pct"),
@@ -202,26 +225,49 @@ def bench_pg17_same_server_head_to_head(
         id_col = "doc_id" if is_docs768 else "id"
         pm_nprobe = 128 if is_docs768 else 16
         rows = []
-        engines = ["pg_certvec", "vchord_rq_p64_pf"]
+        if is_docs768:
+            engines = [
+                "pg_certvec",
+                "pg_certvec_c3000",
+                "pg_certvec_w3_hybrid",
+                "vchord_rq_p64_pf",
+                "vchord_rq_p64_lim500",
+                "vchord_rq_p64_lim1000",
+            ]
+        else:
+            engines = ["pg_certvec", "vchord_rq_p64_pf"]
         for wlabel, pred_fn, gt_key in wl_specs:
-            gt10 = gt_map.get(gt_key)
-            n_eval = min(len(q_bytes_list), len(gt10) if gt10 is not None else 50)
             for engine in engines:
+                gt10 = w3_gt_map.get(gt_key) if engine == "pg_certvec_w3_hybrid" else gt_map.get(gt_key)
+                n_eval = min(len(q_bytes_list), len(gt10) if gt10 is not None else 50)
+                pm_c1 = 3000 if engine in ("pg_certvec_c3000", "pg_certvec_w3_hybrid") else 600
+                vc_lim = 500 if engine == "vchord_rq_p64_lim500" else (1000 if engine == "vchord_rq_p64_lim1000" else 120)
                 # Capture EXPLAIN plan on query 0
                 plan_str = ""
                 with psycopg.connect(dsn, autocommit=True) as c0:
                     w0 = pred_fn(0)
-                    if engine == "pg_certvec":
+                    if engine == "pg_certvec_w3_hybrid":
                         if w0 == "TRUE":
-                            sql0 = f"EXPLAIN SELECT doc_id FROM pm_certvec_topk(%s, %s, NULL, %s, %s, 10, 0.05, {pm_nprobe}, 600);"
+                            sql0 = f"EXPLAIN SELECT doc_id FROM pm_certvec_hybrid_topk(%s, %s, NULL, %s, 0.02::float4, %s, 2, 10, 0.05, {pm_nprobe}, {pm_c1}, ARRAY[0,1], ARRAY[2,0], ARRAY[3,1], ARRAY[0.6::float4,0.4::float4]);"
+                            ex = c0.execute(sql0, (str(idx_dir), str(sidecar_dir), bm25_aux_bytes[0], q_concat_bytes[0])).fetchall()
+                        elif w0 == "dom = 0":
+                            # Real multi-table JOIN predicate SQL (`docs JOIN dom_meta`)!
+                            sql0 = f"EXPLAIN SELECT r.doc_id FROM pm_certvec_hybrid_topk(%s, %s, (SELECT pm_roaring_agg(d.doc_id) FROM docs d JOIN dom_meta m ON d.dom = m.dom_id WHERE m.dom_name = 'dom_0'), %s, 0.02::float4, %s, 2, 10, 0.05, {pm_nprobe}, {pm_c1}, ARRAY[0,1], ARRAY[2,0], ARRAY[3,1], ARRAY[0.6::float4,0.4::float4]) r JOIN docs d ON d.doc_id = r.doc_id ORDER BY r.score DESC;"
+                            ex = c0.execute(sql0, (str(idx_dir), str(sidecar_dir), bm25_aux_bytes[0], q_concat_bytes[0])).fetchall()
+                        else:
+                            sql0 = f"EXPLAIN SELECT r.doc_id FROM pm_certvec_hybrid_topk(%s, %s, (SELECT pm_roaring_agg({id_col}) FROM docs WHERE {w0}), %s, 0.02::float4, %s, 2, 10, 0.05, {pm_nprobe}, {pm_c1}, ARRAY[0,1], ARRAY[2,0], ARRAY[3,1], ARRAY[0.6::float4,0.4::float4]) r JOIN docs d ON d.{id_col} = r.doc_id ORDER BY r.score DESC;"
+                            ex = c0.execute(sql0, (str(idx_dir), str(sidecar_dir), bm25_aux_bytes[0], q_concat_bytes[0])).fetchall()
+                    elif engine.startswith("pg_certvec"):
+                        if w0 == "TRUE":
+                            sql0 = f"EXPLAIN SELECT doc_id FROM pm_certvec_topk(%s, %s, NULL, %s, %s, 10, 0.05, {pm_nprobe}, {pm_c1});"
                             ex = c0.execute(sql0, (str(idx_dir), str(sidecar_dir), q_bytes_list[0], Lq)).fetchall()
                         else:
-                            sql0 = f"EXPLAIN SELECT r.doc_id FROM pm_certvec_topk(%s, %s, (SELECT pm_roaring_agg({id_col}) FROM docs WHERE {w0}), %s, %s, 10, 0.05, {pm_nprobe}, 600) r JOIN docs d ON d.{id_col} = r.doc_id ORDER BY r.score DESC;"
+                            sql0 = f"EXPLAIN SELECT r.doc_id FROM pm_certvec_topk(%s, %s, (SELECT pm_roaring_agg({id_col}) FROM docs WHERE {w0}), %s, %s, 10, 0.05, {pm_nprobe}, {pm_c1}) r JOIN docs d ON d.{id_col} = r.doc_id ORDER BY r.score DESC;"
                             ex = c0.execute(sql0, (str(idx_dir), str(sidecar_dir), q_bytes_list[0], Lq)).fetchall()
                     else:
                         c0.execute("SET vchordrq.probes = '64'; SET vchordrq.prefilter = on; SET max_parallel_workers_per_gather = 0;")
                         if is_docs768:
-                            sql0 = f"EXPLAIN SELECT doc_id, MAX(-(emb <#> %s::halfvec(768))) AS sc FROM (SELECT doc_id, emb FROM chunks WHERE {w0} ORDER BY emb <#> %s::halfvec(768) LIMIT 120) sub GROUP BY doc_id ORDER BY sc DESC LIMIT 10;"
+                            sql0 = f"EXPLAIN SELECT doc_id, MAX(-(emb <#> %s::halfvec(768))) AS sc FROM (SELECT doc_id, emb FROM chunks WHERE {w0} ORDER BY emb <#> %s::halfvec(768) LIMIT {vc_lim}) sub GROUP BY doc_id ORDER BY sc DESC LIMIT 10;"
                             ex = c0.execute(sql0, (q_vchord_list[0], q_vchord_list[0])).fetchall()
                         else:
                             sql0 = f"EXPLAIN SELECT id FROM docs WHERE {w0} ORDER BY embs @# %s::halfvec(128)[] LIMIT 10;"
@@ -231,12 +277,20 @@ def bench_pg17_same_server_head_to_head(
                 bar_start = threading.Barrier(n_threads)
                 bar_end = threading.Barrier(n_threads)
                 stop_evt = threading.Event()
+                pss_stop = threading.Event()
                 counter = itertools.count(0)
                 lats, recalls, all10s = [], [], []
                 counts = [0] * n_threads
                 lock = threading.Lock()
                 t_start, t_end = [0.0], [0.0]
                 peak_pss, peak_rss, peak_procs = [idle_pss], [idle_rss], [idle_procs]
+
+                def pss_sampler():
+                    while not pss_stop.is_set():
+                        np_, pss_, rss_ = measure_tree_pss_rss_gb(pm_pid)
+                        if pss_ > peak_pss[0]:
+                            peak_procs[0], peak_pss[0], peak_rss[0] = np_, pss_, rss_
+                        pss_stop.wait(0.5)
 
                 def worker(tid: int):
                     local_lats, local_rec, local_a10 = [], [], []
@@ -246,20 +300,36 @@ def bench_pg17_same_server_head_to_head(
 
                         def run_one(qi: int):
                             wsql = pred_fn(qi)
-                            if engine == "pg_certvec":
+                            if engine == "pg_certvec_w3_hybrid":
                                 if wsql == "TRUE":
                                     res = c.execute(
-                                        f"SELECT doc_id FROM pm_certvec_topk(%s, %s, NULL, %s, %s, 10, 0.05, {pm_nprobe}, 600);",
+                                        f"SELECT doc_id FROM pm_certvec_hybrid_topk(%s, %s, NULL, %s, 0.02::float4, %s, 2, 10, 0.05, {pm_nprobe}, {pm_c1}, ARRAY[0,1], ARRAY[2,0], ARRAY[3,1], ARRAY[0.6::float4,0.4::float4]);",
+                                        (str(idx_dir), str(sidecar_dir), bm25_aux_bytes[qi], q_concat_bytes[qi]),
+                                    ).fetchall()
+                                elif wsql == "dom = 0":
+                                    res = c.execute(
+                                        f"SELECT r.doc_id FROM pm_certvec_hybrid_topk(%s, %s, (SELECT pm_roaring_agg(d.doc_id) FROM docs d JOIN dom_meta m ON d.dom = m.dom_id WHERE m.dom_name = 'dom_0'), %s, 0.02::float4, %s, 2, 10, 0.05, {pm_nprobe}, {pm_c1}, ARRAY[0,1], ARRAY[2,0], ARRAY[3,1], ARRAY[0.6::float4,0.4::float4]) r JOIN docs d ON d.doc_id = r.doc_id ORDER BY r.score DESC;",
+                                        (str(idx_dir), str(sidecar_dir), bm25_aux_bytes[qi], q_concat_bytes[qi]),
+                                    ).fetchall()
+                                else:
+                                    res = c.execute(
+                                        f"SELECT r.doc_id FROM pm_certvec_hybrid_topk(%s, %s, (SELECT pm_roaring_agg({id_col}) FROM docs WHERE {wsql}), %s, 0.02::float4, %s, 2, 10, 0.05, {pm_nprobe}, {pm_c1}, ARRAY[0,1], ARRAY[2,0], ARRAY[3,1], ARRAY[0.6::float4,0.4::float4]) r JOIN docs d ON d.{id_col} = r.doc_id ORDER BY r.score DESC;",
+                                        (str(idx_dir), str(sidecar_dir), bm25_aux_bytes[qi], q_concat_bytes[qi]),
+                                    ).fetchall()
+                            elif engine.startswith("pg_certvec"):
+                                if wsql == "TRUE":
+                                    res = c.execute(
+                                        f"SELECT doc_id FROM pm_certvec_topk(%s, %s, NULL, %s, %s, 10, 0.05, {pm_nprobe}, {pm_c1});",
                                         (str(idx_dir), str(sidecar_dir), q_bytes_list[qi], Lq),
                                     ).fetchall()
                                 else:
                                     res = c.execute(
-                                        f"SELECT r.doc_id FROM pm_certvec_topk(%s, %s, (SELECT pm_roaring_agg({id_col}) FROM docs WHERE {wsql}), %s, %s, 10, 0.05, {pm_nprobe}, 600) r JOIN docs d ON d.{id_col} = r.doc_id ORDER BY r.score DESC;",
+                                        f"SELECT r.doc_id FROM pm_certvec_topk(%s, %s, (SELECT pm_roaring_agg({id_col}) FROM docs WHERE {wsql}), %s, %s, 10, 0.05, {pm_nprobe}, {pm_c1}) r JOIN docs d ON d.{id_col} = r.doc_id ORDER BY r.score DESC;",
                                         (str(idx_dir), str(sidecar_dir), q_bytes_list[qi], Lq),
                                     ).fetchall()
                             elif is_docs768:
                                 res = c.execute(
-                                    f"SELECT doc_id, MAX(-(emb <#> %s::halfvec(768))) AS sc FROM (SELECT doc_id, emb FROM chunks WHERE {wsql} ORDER BY emb <#> %s::halfvec(768) LIMIT 120) sub GROUP BY doc_id ORDER BY sc DESC LIMIT 10;",
+                                    f"SELECT doc_id, MAX(-(emb <#> %s::halfvec(768))) AS sc FROM (SELECT doc_id, emb FROM chunks WHERE {wsql} ORDER BY emb <#> %s::halfvec(768) LIMIT {vc_lim}) sub GROUP BY doc_id ORDER BY sc DESC LIMIT 10;",
                                     (q_vchord_list[qi], q_vchord_list[qi]),
                                 ).fetchall()
                             else:
@@ -289,10 +359,6 @@ def bench_pg17_same_server_head_to_head(
                                 local_a10.append(1.0 if hits == 10 else 0.0)
                             if tid == 0:
                                 el = time.perf_counter() - t_start[0]
-                                if counts[0] % 3 == 0:
-                                    np_, pss_, rss_ = measure_tree_pss_rss_gb(pm_pid)
-                                    if pss_ > peak_pss[0]:
-                                        peak_procs[0], peak_pss[0], peak_rss[0] = np_, pss_, rss_
                                 if el >= 6.0 and min(counts) >= 2:
                                     stop_evt.set()
                         bar_end.wait()
@@ -303,9 +369,13 @@ def bench_pg17_same_server_head_to_head(
                         recalls.extend(local_rec)
                         all10s.extend(local_a10)
 
+                sampler_t = threading.Thread(target=pss_sampler, daemon=True)
+                sampler_t.start()
                 ts = [threading.Thread(target=worker, args=(i,)) for i in range(n_threads)]
                 for t in ts: t.start()
                 for t in ts: t.join()
+                pss_stop.set()
+                sampler_t.join(timeout=2.0)
 
                 wall = max(1e-6, t_end[0] - t_start[0])
                 tot_q = sum(counts)

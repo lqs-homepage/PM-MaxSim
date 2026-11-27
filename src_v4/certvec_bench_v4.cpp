@@ -127,6 +127,7 @@ static int run_bench_stage0a(int argc, char** argv) {
     size_t ram_mb = 0;
     uint32_t nprobe = 16, c1_pool = 600;
     bool run_thresh = false;
+    std::string wl_filter;
     for (int i = 5; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--threads" && i + 1 < argc) nT = std::stoi(argv[++i]);
@@ -137,6 +138,7 @@ static int run_bench_stage0a(int argc, char** argv) {
         else if (a == "--pread") io_b = PM_IO_PREAD_POOL;
         else if (a == "--no-amx") no_amx = 1;
         else if (a == "--thresh") run_thresh = true;
+        else if (a == "--wl-filter" && i + 1 < argc) wl_filter = argv[++i];
     }
 
     uint64_t N_docs = 0, d = 0, Nq = 0, Lq = 0;
@@ -171,6 +173,7 @@ static int run_bench_stage0a(int argc, char** argv) {
 
     bool first_row = true;
     for (const auto& wl : wls) {
+        if (!wl_filter.empty() && wl.name.find(wl_filter) == std::string::npos) continue;
         std::vector<roaring_bitmap_t*> rbms(wl.n_bm, nullptr);
         for (uint64_t b = 0; b < wl.n_bm; ++b) {
             rbms[b] = roaring_bitmap_create();

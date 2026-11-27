@@ -270,24 +270,75 @@ Datum pm_certvec_hybrid_topk(PG_FUNCTION_ARGS) {
     int32  L = PG_GETARG_INT32(6);
     int32  k = PG_GETARG_INT32(7);
     double delta = PG_GETARG_FLOAT8(8);
+    int32  nprobe = (PG_NARGS() > 9 && !PG_ARGISNULL(9)) ? PG_GETARG_INT32(9) : 16;
+    int32  c1_pool = (PG_NARGS() > 10 && !PG_ARGISNULL(10)) ? PG_GETARG_INT32(10) : 600;
+
+    uint32_t* fids_arr = NULL;
+    pm_set_op_t* sops_arr = NULL;
+    uint32_t* rvals_arr = NULL;
+    float* wts_arr = NULL;
+    if (PG_NARGS() > 11 && !PG_ARGISNULL(11)) {
+        ArrayType* a = PG_GETARG_ARRAYTYPE_P(11);
+        Datum* elems = NULL; int ne = 0;
+        deconstruct_array_builtin(a, INT4OID, &elems, NULL, &ne);
+        if (ne == L) {
+            fids_arr = (uint32_t*)palloc(sizeof(uint32_t) * (size_t)L);
+            for (int i = 0; i < L; ++i) fids_arr[i] = (uint32_t)DatumGetInt32(elems[i]);
+        }
+    }
+    if (PG_NARGS() > 12 && !PG_ARGISNULL(12)) {
+        ArrayType* a = PG_GETARG_ARRAYTYPE_P(12);
+        Datum* elems = NULL; int ne = 0;
+        deconstruct_array_builtin(a, INT4OID, &elems, NULL, &ne);
+        if (ne == L) {
+            sops_arr = (pm_set_op_t*)palloc(sizeof(pm_set_op_t) * (size_t)L);
+            for (int i = 0; i < L; ++i) sops_arr[i] = (pm_set_op_t)DatumGetInt32(elems[i]);
+        }
+    }
+    if (PG_NARGS() > 13 && !PG_ARGISNULL(13)) {
+        ArrayType* a = PG_GETARG_ARRAYTYPE_P(13);
+        Datum* elems = NULL; int ne = 0;
+        deconstruct_array_builtin(a, INT4OID, &elems, NULL, &ne);
+        if (ne == L) {
+            rvals_arr = (uint32_t*)palloc(sizeof(uint32_t) * (size_t)L);
+            for (int i = 0; i < L; ++i) rvals_arr[i] = (uint32_t)DatumGetInt32(elems[i]);
+        }
+    }
+    if (PG_NARGS() > 14 && !PG_ARGISNULL(14)) {
+        ArrayType* a = PG_GETARG_ARRAYTYPE_P(14);
+        Datum* elems = NULL; int ne = 0;
+        deconstruct_array(a, FLOAT4OID, sizeof(float4), true, TYPALIGN_INT, &elems, NULL, &ne);
+        if (ne == L) {
+            wts_arr = (float*)palloc(sizeof(float) * (size_t)L);
+            for (int i = 0; i < L; ++i) wts_arr[i] = DatumGetFloat4(elems[i]);
+        }
+    }
 
     pm_query_spec_t qspec;
     memset(&qspec, 0, sizeof(qspec));
     qspec.L = (uint32_t)L;
     qspec.q_vecs = (const float*)VARDATA_ANY(qbytes);
+    qspec.field_ids = fids_arr;
+    qspec.set_ops = sops_arr;
+    qspec.r_vals = rvals_arr;
+    qspec.weights = wts_arr;
     qspec.agg_kind = PM_AGG_WSUM;
     qspec.mode = PM_MODE_TOPK;
     qspec.k = (uint32_t)k;
     qspec.delta = delta;
     qspec.split_lambda = 0.2;
-    qspec.nprobe = 16;
-    qspec.c1_pool = 600;
+    qspec.nprobe = (uint32_t)nprobe;
+    qspec.c1_pool = (uint32_t)c1_pool;
 
     pm_hit_t* hits = (pm_hit_t*)palloc0(sizeof(pm_hit_t) * (size_t)k);
     uint32_t out_cnt = (uint32_t)k;
     pm_query_stats_t st;
     int rc = pm_execute_query(h, &bm_view, &aux, &qspec, hits, &out_cnt, NULL, NULL, &st);
     if (bm) roaring_bitmap_free(bm);
+    if (fids_arr) pfree(fids_arr);
+    if (sops_arr) pfree(sops_arr);
+    if (rvals_arr) pfree(rvals_arr);
+    if (wts_arr) pfree(wts_arr);
     if (rc != 0) ereport(ERROR, (errmsg("pg_certvec_hybrid_topk failed with rc=%d", rc)));
 
     emit_hits_to_tuplestore(fcinfo, hits, out_cnt);

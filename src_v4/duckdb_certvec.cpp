@@ -92,6 +92,8 @@ static duckdb::unique_ptr<duckdb::FunctionData> certvec_bind(
     data->q_vecs.resize(q_blob.size() / sizeof(float));
     std::memcpy(data->q_vecs.data(), q_blob.data(), data->q_vecs.size() * sizeof(float));
     data->L = static_cast<uint32_t>(input.inputs[4].GetValue<int32_t>());
+    uint32_t d_in = (data->L > 0) ? static_cast<uint32_t>(data->q_vecs.size() / data->L) : 128u;
+    if (d_in >= 256u && data->L == 1u) { data->nprobe = 128; data->c1_pool = 3000; }
     if (is_thresh) {
         data->tau = input.inputs[5].GetValue<double>();
     } else {
@@ -310,18 +312,34 @@ int main(int argc, char** argv) {
     uint32_t d = info.dims[0];
     pm_close(h);
 
-    // Load real query 0 from core_index.bin if present
-    std::vector<float> q0(32ULL * d, 0.0f);
+    // Load real query 0..49 from core_index.bin (v4) or eval_bundle.bin (CERTVEC5)
+    uint32_t Lq = 32;
+    std::vector<float> all_q;
     std::ifstream cf(index_dir + "/core_index.bin", std::ios::binary);
     if (cf) {
         uint64_t hdr[12];
         cf.read(reinterpret_cast<char*>(hdr), sizeof(hdr));
         uint64_t K = hdr[2], dd = hdr[3];
+        Lq = 32;
+        all_q.assign(50ULL * Lq * dd, 0.0f);
         cf.seekg(static_cast<std::streamoff>(K * dd * 4ULL + dd * dd * 4ULL), std::ios::cur);
-        cf.read(reinterpret_cast<char*>(q0.data()), 32ULL * dd * 4ULL);
+        cf.read(reinterpret_cast<char*>(all_q.data()), all_q.size() * 4ULL);
     } else {
-        for (size_t i = 0; i < q0.size(); ++i) q0[i] = (i % 7 == 0) ? 0.1f : -0.05f;
+        std::ifstream ef(index_dir + "/eval_bundle.bin", std::ios::binary);
+        if (ef) {
+            uint64_t hdr[8]; ef.read(reinterpret_cast<char*>(hdr), sizeof(hdr));
+            uint64_t Nq_b = hdr[2], d0 = hdr[3], L0 = hdr[5];
+            Lq = static_cast<uint32_t>(L0);
+            uint64_t nload = std::min<uint64_t>(50ULL, Nq_b);
+            all_q.assign(50ULL * Lq * d0, 0.0f);
+            ef.read(reinterpret_cast<char*>(all_q.data()), nload * Lq * d0 * 4ULL);
+        } else {
+            Lq = (d >= 256) ? 1u : 32u;
+            all_q.assign(50ULL * Lq * d, 0.0f);
+            for (size_t i = 0; i < all_q.size(); ++i) all_q[i] = (i % 7 == 0) ? 0.1f : -0.05f;
+        }
     }
+    std::vector<float> q0(all_q.begin(), all_q.begin() + static_cast<size_t>(Lq) * d);
 
     // Create real relational tables inside DuckDB (`docs` + `domains` for multi-table JOIN + WHERE + GROUP BY!)
     con.Query("CREATE TABLE domains (dom_id INT, dom_name VARCHAR);");
@@ -336,7 +354,7 @@ int main(int argc, char** argv) {
         "SELECT s.doc_id, m.dom_name, d.page_len, round(s.score, 4) AS score "
         "FROM pm_certvec_topk("
         "  (SELECT d.doc_id FROM docs d JOIN domains m ON d.dom_id = m.dom_id WHERE m.dom_name IN ('finance','legal') AND d.page_len <= 150), "
-        "  $1::VARCHAR, $2::VARCHAR, $3::BLOB, 32::INTEGER, 10::INTEGER, 0.05::DOUBLE, 0.0::FLOAT) s "
+        "  $1::VARCHAR, $2::VARCHAR, $3::BLOB, " + std::to_string(Lq) + "::INTEGER, 10::INTEGER, 0.05::DOUBLE, 0.0::FLOAT) s "
         "JOIN docs d ON s.doc_id = d.doc_id JOIN domains m ON d.dom_id = m.dom_id "
         "ORDER BY s.score DESC;");
     auto res1_raw = prep1->Execute(index_dir, sidecar_dir, q_blob);
@@ -360,13 +378,13 @@ int main(int argc, char** argv) {
     std::cout << "[DuckDB Q-TopK JOIN+WHERE] rows=" << q1_rows << " ms=" << ms1 << "\n";
 
     // 2. Complex analytical SQL: Q-Thresh feeding downstream GROUP BY + COUNT(*) + AVG(score)!
-    double tau = (q1_scores.size() >= 5) ? (q1_scores[4] - 0.01) : 10.0;
+    double tau = (q1_scores.size() >= 5) ? (q1_scores[4] - 0.01) : 0.5;
     auto t1 = std::chrono::steady_clock::now();
     auto prep2 = con.Prepare(
         "SELECT m.dom_name, COUNT(*) AS matched_docs, round(AVG(s.score), 4) AS avg_score "
         "FROM pm_certvec_thresh("
         "  (SELECT d.doc_id FROM docs d JOIN domains m ON d.dom_id = m.dom_id WHERE m.dom_name IN ('finance','legal') AND d.page_len <= 150), "
-        "  $1::VARCHAR, $2::VARCHAR, $3::BLOB, 32::INTEGER, $4::DOUBLE, 0.05::DOUBLE, 0.0::FLOAT) s "
+        "  $1::VARCHAR, $2::VARCHAR, $3::BLOB, " + std::to_string(Lq) + "::INTEGER, $4::DOUBLE, 0.05::DOUBLE, 0.0::FLOAT) s "
         "JOIN docs d ON s.doc_id = d.doc_id JOIN domains m ON d.dom_id = m.dom_id "
         "GROUP BY m.dom_name ORDER BY matched_docs DESC;");
     auto res2_raw = prep2->Execute(index_dir, sidecar_dir, q_blob, tau);
@@ -385,26 +403,18 @@ int main(int argc, char** argv) {
 
     if (std::string(argv[1]) == "--bench-decomp" && argc >= 5) {
         std::string out_json = argv[4];
-        // Load 50 queries from core_index.bin
-        std::vector<float> all_q(50ULL * 32ULL * d, 0.0f);
-        std::ifstream cf2(index_dir + "/core_index.bin", std::ios::binary);
-        if (cf2) {
-            uint64_t hdr[12]; cf2.read(reinterpret_cast<char*>(hdr), sizeof(hdr));
-            cf2.seekg(static_cast<std::streamoff>(hdr[2] * hdr[3] * 4ULL + hdr[3] * hdr[3] * 4ULL), std::ios::cur);
-            cf2.read(reinterpret_cast<char*>(all_q.data()), all_q.size() * 4ULL);
-        }
-        // Also prepare a direct per-hit Q-Thresh verification query to measure exact false positives across ALL 40 queries!
+        // Direct per-hit Q-Thresh verification query to measure exact false positives across ALL 40 queries!
         auto prep2_fp = con.Prepare(
             "SELECT COUNT(*) FROM pm_certvec_thresh("
             "  (SELECT d.doc_id FROM docs d JOIN domains m ON d.dom_id = m.dom_id WHERE m.dom_name IN ('finance','legal') AND d.page_len <= 150), "
-            "  $1::VARCHAR, $2::VARCHAR, $3::BLOB, 32::INTEGER, $4::DOUBLE, 0.05::DOUBLE, 0.0::FLOAT) s "
+            "  $1::VARCHAR, $2::VARCHAR, $3::BLOB, " + std::to_string(Lq) + "::INTEGER, $4::DOUBLE, 0.05::DOUBLE, 0.0::FLOAT) s "
             "WHERE s.score < ($4::DOUBLE - 1e-9);");
 
         // Precompute realistic per-query threshold tau_q = 5th top score on each query qi
         std::vector<double> per_q_tau(45, tau);
         for (int qi = 0; qi < 45; ++qi) {
-            const float* qp = all_q.data() + static_cast<size_t>(qi) * 32ULL * d;
-            duckdb::Value qb = duckdb::Value::BLOB(reinterpret_cast<const uint8_t*>(qp), 32ULL * d * sizeof(float));
+            const float* qp = all_q.data() + static_cast<size_t>(qi) * Lq * d;
+            duckdb::Value qb = duckdb::Value::BLOB(reinterpret_cast<const uint8_t*>(qp), static_cast<size_t>(Lq) * d * sizeof(float));
             auto rt = prep1->Execute(index_dir, sidecar_dir, qb);
             std::vector<double> scs;
             while (auto ch = rt->Fetch()) {
@@ -421,8 +431,8 @@ int main(int argc, char** argv) {
             double rsum = 0.0;
             tot_fp = 0;
             for (int qi = 0; qi < 45; ++qi) {
-                const float* qp = all_q.data() + static_cast<size_t>(qi) * 32ULL * d;
-                duckdb::Value qb = duckdb::Value::BLOB(reinterpret_cast<const uint8_t*>(qp), 32ULL * d * sizeof(float));
+                const float* qp = all_q.data() + static_cast<size_t>(qi) * Lq * d;
+                duckdb::Value qb = duckdb::Value::BLOB(reinterpret_cast<const uint8_t*>(qp), static_cast<size_t>(Lq) * d * sizeof(float));
                 duckdb_certvec::g_last_core_ms.store(0.0, std::memory_order_release);
                 auto td0 = std::chrono::steady_clock::now();
                 auto r = is_thresh ? prep2->Execute(index_dir, sidecar_dir, qb, per_q_tau[qi]) : prep1->Execute(index_dir, sidecar_dir, qb);

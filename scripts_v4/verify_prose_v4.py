@@ -45,9 +45,9 @@ def main():
     t5 = load_csv("T5_v4_cross_gen_portability.csv")
     summary = json.loads((TD / "reconciled_v4_summary.json").read_text())
 
-    assert len(t1) == summary["T1_rows"] == 237
-    assert len(t2) == summary["T2_rows"] == 184
-    assert len(t3) == summary["T3_rows"] == 24
+    assert len(t1) == summary["T1_rows"] == 317
+    assert len(t2) == summary["T2_rows"] == 200
+    assert len(t3) == summary["T3_rows"] == 38
     assert len(t4) == summary["T4_rows"] == 20
     assert len(t5) == summary["T5_rows"] == 68
 
@@ -91,10 +91,20 @@ def main():
     check_in_prose(f"{float(r['qps']):.2f} QPS", "T1 bgem3 np32 PM_dram Nat_Topic0_Eq QPS"); checks += 1
     check_in_prose(f"R@10 = {float(r['recall10']):.4f}", "T1 bgem3 np32 PM_dram Nat_Topic0_Eq R10"); checks += 1
 
+    r = find_row(t1, corpus="bgem3_1024d_hybrid_np128_c4000", engine="PM_split", workload="NoCorr_100pct", task="W2_ColBERT_1024D")
+    check_in_prose(f"{float(r['qps']):.2f} QPS", "GAP-1 T1 bgem3 np128 PM_split 100pct QPS"); checks += 1
+    check_in_prose(f"R@10 = {float(r['recall10']):.4f}", "GAP-1 T1 bgem3 np128 PM_split 100pct R10"); checks += 1
+    r = find_row(t1, corpus="bgem3_1024d_hybrid_np128_c4000", engine="PM_split", workload="NoCorr_5pct", task="W2_ColBERT_1024D")
+    check_in_prose(f"{float(r['qps']):.2f} QPS", "GAP-1 T1 bgem3 np128 PM_split 5pct QPS"); checks += 1
+    check_in_prose(f"R@10 = {float(r['recall10']):.4f}", "GAP-1 T1 bgem3 np128 PM_split 5pct R10"); checks += 1
+    r = find_row(t1, corpus="bgem3_1024d_hybrid_np128_c4000", engine="PM_dram", workload="Nat_Topic0_Eq", task="W2_ColBERT_1024D")
+    check_in_prose(f"{float(r['qps']):.2f} QPS", "GAP-1 T1 bgem3 np128 PM_dram Nat_Topic0_Eq QPS"); checks += 1
+    check_in_prose(f"R@10 = {float(r['recall10']):.4f}", "GAP-1 T1 bgem3 np128 PM_dram Nat_Topic0_Eq R10"); checks += 1
+
     r = find_row(t1, corpus="bgem3_1024d_hybrid", engine="Qdrant_1.20.2_INT8", workload="NoCorr_100pct")
     check_in_prose(f"{float(r['qps']):.2f} QPS", "T1 bgem3 Qdrant INT8 100pct QPS"); checks += 1
 
-    # --- T2 checks (warmup-clean 8.84M + LoTTE 2.82M -1.4 pts disclosure) ---
+    # --- T2 checks (warmup-clean 8.84M + LoTTE 2.82M -1.4 pts disclosure + GAP-3 C0=16384 recovery) ---
     r_m0 = find_row(t2, suite="msmarco_8.84m_dram", workload="NoCorr_100.00pct", stage0a="False")
     r_m1 = find_row(t2, suite="msmarco_8.84m_dram", workload="NoCorr_100.00pct", stage0a="True")
     assert r_m1["c1_pool_effective"] == "900"
@@ -114,22 +124,37 @@ def main():
     check_in_prose("-1.4 pts", "T2 lotte 2.82M -1.4 pts recall delta disclosure"); checks += 1
     check_in_prose(f"{float(r_l0['recall10']):.4f}", "T2 lotte 2.82M s0a=False R10"); checks += 1
     check_in_prose(f"{float(r_l1['recall10']):.4f}", "T2 lotte 2.82M s0a=True R10"); checks += 1
+    r_c16s = find_row(t2, suite="lotte_2.82m_c0_16384_split", workload="NoCorr_100.00pct", stage0a="True")
+    r_c16d = find_row(t2, suite="lotte_2.82m_c0_16384_dram", workload="NoCorr_100.00pct", stage0a="True")
+    assert float(r_c16s["recall10"]) == 0.934 and float(r_c16d["recall10"]) == 0.934
+    check_in_prose("C0 = 16384", "GAP-3 T2 lotte 2.82M C0=16384 recovery"); checks += 1
 
-    # --- T3 checks (PG17 + DuckDB real FP & exact LOC) ---
+    # --- T3 checks (PG17 + DuckDB real FP, exact LOC, GAP-2/4/5) ---
     pg_c_lines = len((BASE / "src/pg_certvec.c").read_text().splitlines())
     pg_sql_lines = len((BASE / "src/pg_certvec--1.0.sql").read_text().splitlines())
-    assert pg_c_lines + pg_sql_lines == 578
-    check_in_prose("578", "T3 PG17 exact raw LOC"); checks += 1
+    assert pg_c_lines + pg_sql_lines == 635
+    check_in_prose("635", "T3 PG17 exact raw LOC"); checks += 1
 
-    for corpus, wl in [("vidore_v3_am", "Nat_DomainEq"), ("lotte_200k", "NoCorr_5pct"), ("msmarco_docs_768d", "NoCorr_5pct")]:
-        r_pm = find_row(t3, host="PostgreSQL_17.12", corpus=corpus, engine="pg_certvec", workload=wl)
-        r_vc = find_row(t3, host="PostgreSQL_17.12", corpus=corpus, engine="vchord_rq_p64_pf", workload=wl)
-        check_in_prose(f"{float(r_pm['qps']):.2f}", f"T3 PG17 {corpus} {wl} pg_certvec"); checks += 1
-        check_in_prose(f"{float(r_vc['qps']):.2f}", f"T3 PG17 {corpus} {wl} vchord"); checks += 1
-        assert r_pm["thresh_fp"] == "0" and r_pm["thresh_verified_q"] == "20" and r_pm["integration_loc"] == "578"
+    # GAP-4: Verify ALL 6 ViDoRe PG17 rows captured true 54-proc PSS!
+    for r in [x for x in t3 if x["host"] == "PostgreSQL_17.12" and x["corpus"] == "vidore_v3_am"]:
+        assert int(r["pg_procs"]) == 54 and float(r["active_pss_gb"]) > 1.7, f"GAP-4 ViDoRe PSS check failed: {r}"
+    checks += 1
+
+    for corpus, wl, eng_pm, eng_vc in [
+        ("vidore_v3_am", "Nat_DomainEq", "pg_certvec", "vchord_rq_p64_pf"),
+        ("lotte_200k", "NoCorr_5pct", "pg_certvec", "vchord_rq_p64_pf"),
+        ("msmarco_docs_768d", "NoCorr_5pct", "pg_certvec_c3000", "vchord_rq_p64_lim1000"),
+        ("msmarco_docs_768d", "NoCorr_5pct", "pg_certvec_w3_hybrid", "vchord_rq_p64_pf"),
+        ("msmarco_docs_768d", "Nat_Dom0_Eq", "pg_certvec_w3_hybrid", "vchord_rq_p64_lim1000"),
+    ]:
+        r_pm = find_row(t3, host="PostgreSQL_17.12", corpus=corpus, engine=eng_pm, workload=wl)
+        r_vc = find_row(t3, host="PostgreSQL_17.12", corpus=corpus, engine=eng_vc, workload=wl)
+        check_in_prose(f"{float(r_pm['qps']):.2f}", f"T3 PG17 {corpus} {wl} {eng_pm}"); checks += 1
+        check_in_prose(f"{float(r_vc['qps']):.2f}", f"T3 PG17 {corpus} {wl} {eng_vc}"); checks += 1
+        assert r_pm["thresh_fp"] == "0" and r_pm["thresh_verified_q"] == "20" and r_pm["integration_loc"] == "635"
         checks += 1
 
-    for corpus in ["vidore_v3_am", "lotte_200k"]:
+    for corpus in ["vidore_v3_am", "lotte_200k", "msmarco_docs_768d"]:
         r_dk1 = find_row(t3, host="DuckDB_1.2.1", corpus=corpus, workload="Q_TopK_JOIN_WHERE")
         r_dk2 = find_row(t3, host="DuckDB_1.2.1", corpus=corpus, workload="Q_Thresh_GROUP_BY")
         assert r_dk2["thresh_fp"] == "0" and r_dk2["thresh_verified_q"] == "40"

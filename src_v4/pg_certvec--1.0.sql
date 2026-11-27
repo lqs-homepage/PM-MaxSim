@@ -64,7 +64,13 @@ CREATE FUNCTION pm_certvec_hybrid_topk(
     query_f32 bytea,
     L int4,
     k int4,
-    delta float8 DEFAULT 0.05
+    delta float8 DEFAULT 0.05,
+    nprobe int4 DEFAULT 16,
+    c1_pool int4 DEFAULT 600,
+    field_ids int4[] DEFAULT NULL,
+    set_ops int4[] DEFAULT NULL,
+    r_vals int4[] DEFAULT NULL,
+    weights float4[] DEFAULT NULL
 ) RETURNS TABLE(doc_id int4, score float8)
 AS 'MODULE_PATHNAME', 'pm_certvec_hybrid_topk'
 LANGUAGE C VOLATILE;

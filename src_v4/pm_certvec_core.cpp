@@ -1810,6 +1810,10 @@ int pm_execute_query(
                 // Signed int32_t acc[65536] (256 KB) + uint16_t q_max[65536] (128 KB) = 384 KB (< 1.25 MiB L2)!
                 st.stage0a_used = 1;
                 uint64_t base_c0 = std::max<uint64_t>(8ULL * c1_cap, 8192ULL);
+                if (const char* env_c0 = std::getenv("PM_S0A_C0")) {
+                    uint64_t ov = std::strtoull(env_c0, nullptr, 10);
+                    if (ov > 0) base_c0 = ov;
+                }
                 uint64_t c0_cap = (rho_surv >= 0.5)
                     ? base_c0
                     : std::min<uint64_t>(static_cast<uint64_t>(est_union),

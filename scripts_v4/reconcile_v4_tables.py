@@ -33,6 +33,8 @@ def export_t1(summary: dict):
     for corpus, prefix, tiers in [
         ("bgem3_1024d_hybrid", "bgem3_1024d", ["nvme", "split", "dram"]),
         ("bgem3_1024d_hybrid_np32", "bgem3_1024d_np32", ["split", "dram"]),
+        ("bgem3_1024d_hybrid_np64_c2000", "bgem3_1024d_np64_c2000", ["split", "dram"]),
+        ("bgem3_1024d_hybrid_np128_c4000", "bgem3_1024d_np128_c4000", ["split", "dram"]),
         ("msmarco_docs_768d", "msmarco_docs_768d", ["nvme", "split", "dram"]),
         ("msmarco_docs_768d_c3000", "msmarco_docs_768d_c3000", ["split", "dram"]),
     ]:
@@ -90,6 +92,14 @@ def export_t2(summary: dict):
         ("lotte_200k_np32_c4000", "lotte200k_s0a_hi_dram.json", "dram", 4000),
         ("lotte_2.82m_split", "lotte28m_s0a_split.json", "split", 600),
         ("lotte_2.82m_dram", "lotte28m_s0a_dram.json", "dram", 600),
+        ("lotte_2.82m_c0_4096_split", "lotte28m_s0a_c0_4096_split.json", "split", 600),
+        ("lotte_2.82m_c0_4096_dram", "lotte28m_s0a_c0_4096_dram.json", "dram", 600),
+        ("lotte_2.82m_c0_8192_split", "lotte28m_s0a_c0_8192_split.json", "split", 600),
+        ("lotte_2.82m_c0_8192_dram", "lotte28m_s0a_c0_8192_dram.json", "dram", 600),
+        ("lotte_2.82m_c0_16384_split", "lotte28m_s0a_c0_16384_split.json", "split", 600),
+        ("lotte_2.82m_c0_16384_dram", "lotte28m_s0a_c0_16384_dram.json", "dram", 600),
+        ("lotte_2.82m_c0_32768_split", "lotte28m_s0a_c0_32768_split.json", "split", 600),
+        ("lotte_2.82m_c0_32768_dram", "lotte28m_s0a_c0_32768_dram.json", "dram", 600),
         ("msmarco_8.84m_split", "msmarco8m_s0a_split.json", "split", 900),
         ("msmarco_8.84m_dram", "msmarco8m_s0a_dram.json", "dram", 900),
     ]
@@ -137,13 +147,14 @@ def export_t3(summary: dict):
                 "littles_law": r["littles_law"], "recall10": r["recall10"], "all10": r.get("all10", ""),
                 "pg_procs": r["pg_procs"], "active_pss_gb": r["active_pss_gb"],
                 "core_p50_ms": "", "host_overhead_ms": "",
-                "integration_loc": 578 if r["engine"] == "pg_certvec" else "",
-                "thresh_fp": tchk.get("false_positives", "") if r["engine"] == "pg_certvec" else "",
-                "thresh_verified_q": tchk.get("verified_queries", "") if r["engine"] == "pg_certvec" else "",
+                "integration_loc": 635 if r["engine"].startswith("pg_certvec") else "",
+                "thresh_fp": tchk.get("false_positives", "") if r["engine"].startswith("pg_certvec") else "",
+                "thresh_verified_q": tchk.get("verified_queries", "") if r["engine"].startswith("pg_certvec") else "",
             })
     for tag, fn in [
         ("vidore_v3_am", "duckdb_decomp_vidore_am.json"),
         ("lotte_200k", "duckdb_decomp_lotte_200k.json"),
+        ("msmarco_docs_768d", "duckdb_decomp_docs768.json"),
     ]:
         d = load_json(RES_DIR / fn)
         if not d:

@@ -83,14 +83,14 @@ In addition to the core multi-vector engine (`src/`, `results/T1..T8.csv`), `src
 
 - **`src_v4/`**:
   - `pm_certvec.h`, `pm_certvec_core.cpp`, `pm_kernels.hpp`, `beta_quantiles_gen.hpp`, `pm_s3fifo_cache.hpp`, `pm_io_backend.hpp`: Universal C++17 core supporting W1 (Parent-Entity `GROUP BY` `Max` / `Top-r Mean`), W2 (Late-Interaction `ColBERTv2` / `ColQwen2.5` / `BGE-M3` 1024D), W3 (Dynamic-Weight Multi-Field & Hybrid `BM25/Sparse + Dense + MaxSim`), W4 (Certified `0`-FP Semantic Threshold `>= tau`), Theorem 4C (`Stage-0a`), Theorem 5 Unified 4 KiB S3-FIFO Page Cache, and dual `io_uring` / POSIX `pread` backends.
-  - `pg_certvec.c`, `pg_certvec--1.0.sql`, `pg_certvec.control`: Native **PostgreSQL 17.12** extension (`578` raw LOC: `504` C + `74` SQL) using `mmap(MAP_SHARED)`, `roaring_bitmap_frozen_view`, PG `ShmemInitStruct` guarded by `AddinShmemInitLock`, and composable `pm_roaring_agg` / `pm_aux_agg` / `pm_certvec_{topk,hybrid_topk,thresh}` SRFs.
-  - `duckdb_certvec.cpp`: Native **DuckDB 1.2.1** C++20 `Table-In-Out Function` (`251` non-blank / `282` raw integration LOC in `namespace duckdb_certvec`, `CertVecGlobalState::MaxThreads() = 1`) accepting arbitrary SQL subqueries via `LogicalType::TABLE`.
+  - `pg_certvec.c`, `pg_certvec--1.0.sql`, `pg_certvec.control`: Native **PostgreSQL 17.12** extension (`635` raw LOC: `555` C + `80` SQL) using `mmap(MAP_SHARED)`, `roaring_bitmap_frozen_view`, PG `ShmemInitStruct` guarded by `AddinShmemInitLock`, and composable `pm_roaring_agg` / `pm_aux_agg` / `pm_certvec_{topk,hybrid_topk,thresh}` SRFs.
+  - `duckdb_certvec.cpp`: Native **DuckDB 1.2.1** C++20 `Table-In-Out Function` (`253` non-blank / `284` raw integration LOC in `namespace duckdb_certvec`, `CertVecGlobalState::MaxThreads() = 1`) accepting arbitrary SQL subqueries via `LogicalType::TABLE`.
   - `certvec_builder_v5.cpp`, `certvec_cli.cpp` (`--unit-test-all`), `certvec_bench_v4.cpp`, `certvec_bench_certvec5.cpp`, `Makefile`.
 - **`scripts_v4/`**: Dataset builders (`msmarco_docs_768d`, `bgem3_1024d_hybrid`), external DB ingestion & benchmark harnesses (`Qdrant 1.20.2 BQ/INT8`, same-server `PG 17.12 + VectorChord 1.5 RQ`), cold-evicted `POSIX_FADV_DONTNEED` `cgroup v2` harness, `verify_theory_v4.py`, `reconcile_v4_tables.py`, and `verify_prose_v4.py`.
-- **`results_v4/` (`533` reconciled rows)**:
-  - `T1_v4_generalized_corpora.csv` (`237` rows): `MS MARCO Docs 768D` & `BGE-M3 1024D Hybrid` (W1–W4, `PM-MaxSim` vs `Approx_B4_Uncert` vs `Qdrant BQ/INT8`, full resident index RAM + touched PSS).
-  - `T2_v4_stage0a_theorem4c.csv` (`184` rows): Theorem 4C (`Stage-0a`) across `LoTTE 200k`, `LoTTE 2.82M`, and `MS MARCO 8.84M`.
-  - `T3_v4_dual_sql_hosts.csv` (`24` rows): Same-server `PostgreSQL 17.12` (`pg_certvec` vs `VectorChord 1.5 RQ`, 48 clients, `0/20` FP × 3 corpora) and `DuckDB 1.2.1` host-overhead decomposition (`1.02–2.84 ms`, `0/40` FP × 2 corpora).
+- **`results_v4/` (`643` reconciled rows)**:
+  - `T1_v4_generalized_corpora.csv` (`317` rows): `MS MARCO Docs 768D` & `BGE-M3 1024D Hybrid` (W1–W4, `PM-MaxSim` vs `Approx_B4_Uncert` vs `Qdrant BQ/INT8`, full resident index RAM + touched PSS).
+  - `T2_v4_stage0a_theorem4c.csv` (`200` rows): Theorem 4C (`Stage-0a`) across `LoTTE 200k`, `LoTTE 2.82M`, and `MS MARCO 8.84M`.
+  - `T3_v4_dual_sql_hosts.csv` (`38` rows): Same-server `PostgreSQL 17.12` (`pg_certvec` vs `VectorChord 1.5 RQ`, 48 clients, `0/20` FP × 3 corpora) and `DuckDB 1.2.1` host-overhead decomposition (`1.02–2.84 ms`, `0/40` FP × 2 corpora).
   - `T4_v4_cgroup_kkt_zipf.csv` (`20` rows): Cold-evicted `cgroup v2 memory.max` (`swap=0`, 48 cores) OOM survival (`PM-MaxSim` vs `Qdrant`) and Theorem 5 `50K Zipf(s=1.0)` continuous KKT phase transition (`20G` vs `24G` on `MS MARCO seg0`).
   - `T5_v4_cross_gen_portability.csv` (`68` rows): Cross-generation Ice Lake (no AMX, Linux 5.4 `pread`, 16 cores) portability & self-calibration.
 
