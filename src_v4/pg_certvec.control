@@ -1,0 +1,4 @@
+comment = 'PM-MaxSim / CertVec: Certified Out-of-Core Filtered Vector-Collection Execution'
+default_version = '1.0'
+module_pathname = '$libdir/pg_certvec'
+relocatable = true
